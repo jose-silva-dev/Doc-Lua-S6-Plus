@@ -19,6 +19,23 @@ function Render()
 end
 ```
 
+## RenderTop
+
+```lua
+function RenderTop()
+end
+```
+
+Chamado depois da interface principal e das informacoes do jogo. Use para janelas Lua que precisam ficar acima do HUD e de textos nativos. O cursor do jogo continua sendo desenhado depois.
+
+Exemplo:
+
+```lua
+function RenderTop()
+	Client.RenderText(20, 110, "Janela em camada superior", 240, 0, 1, 255, 255, 255, 255)
+end
+```
+
 ## Update
 
 ```lua
@@ -131,13 +148,26 @@ end)
 ```lua
 ClientHooks.RegisterUpdate(name, callback)
 ClientHooks.RegisterRender(name, callback)
+ClientHooks.RegisterUpdateMouse(name, callback)
 ClientHooks.RegisterUpdateKey(name, callback)
 ClientHooks.RegisterScrollMouse(name, callback)
 ClientHooks.RegisterClick(name, callback)
 ClientHooks.RegisterRightClick(name, callback)
+ClientHooks.UnregisterRender(name)
+ClientHooks.UnregisterUpdateMouse(name)
+ClientHooks.UnregisterUpdate(name)
+ClientHooks.UnregisterUpdateKey(name)
+ClientHooks.UnregisterScrollMouse(name)
+ClientHooks.UnregisterClick(name)
+ClientHooks.UnregisterRightClick(name)
 ```
 
 Wrapper recomendado para sistemas grandes, evitando sobrescrever funcoes globais.
+
+Callbacks de teclado podem retornar `true` quando o sistema consumiu a tecla.
+Esse retorno interrompe o fluxo nativo de teclado naquele frame.
+Para teclas que tambem tem acao nativa, use `Client.ConsumeKey(vk)` ao tratar a tecla.
+No caso de `ESC`, `Client.ConsumeKey(0x1B)` faz a janela Lua ter prioridade sobre o menu nativo e sobre o fechamento de outras interfaces nativas ate a tecla ser solta.
 
 Exemplo:
 
@@ -145,5 +175,16 @@ Exemplo:
 ClientHooks.RegisterRender("MinhaJanela", function()
 	Client.RenderText(20, 100, "Minha janela", 200, 0, 1, 255, 255, 255, 255)
 end)
+
+ClientHooks.RegisterUpdateKey("MinhaJanela", function(key, down, wasDown)
+	if MinhaJanela.open and key == 0x1B and down then
+		Client.ConsumeKey(0x1B)
+		MinhaJanela.open = false
+		return true
+	end
+
+	return false
+end)
 ```
 
+Para janelas moveis, use `Client.GetMouseX()`, `Client.GetMouseY()`, `Client.IsMouseLeftButton()` e `Client.BlockMouse()` dentro de `RegisterUpdateMouse`. Guarde `x` e `y` em uma tabela Lua do sistema para manter a posicao enquanto o cliente estiver aberto.

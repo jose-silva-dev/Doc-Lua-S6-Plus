@@ -78,7 +78,7 @@ Exemplo:
 ```lua
 OpenFolder("LuaSystem")
 OpenFolder("Custom\\Configs")
-OpenFolder("Custom")
+OpenFolder("Custom\\System")
 ```
 
 ## OpenExtension
@@ -159,18 +159,20 @@ SendMessage(msg, playerIndex, 1)
 ```lua
 player:setMoney(value)
 player:setLevelUpPoint(value)
-player:setStrength(value)
-player:setDexterity(value)
-player:setVitality(value)
-player:setEnergy(value)
-player:setLeadership(value)
+player:addMoney(value)
+player:addLevelUpPoint(value)
+player:addStrength(value)
+player:addDexterity(value)
+player:addVitality(value)
+player:addEnergy(value)
+player:addLeadership(value)
 ```
 
 Exemplo:
 
 ```lua
 local player = User.new(playerIndex)
-player:setMoney(player:getMoney() + 1000000)
+player:addMoney(1000000)
 SendMessage("Zen adicionado.", playerIndex, 1)
 ```
 
@@ -210,10 +212,9 @@ end)
 
 ```lua
 Timer.Interval(seconds, callback)
-Timer.Once(seconds, callback)
 ```
 
-Executa funcao depois de um tempo ou repetidamente.
+Executa uma funcao repetidamente.
 
 Exemplo:
 
@@ -226,12 +227,51 @@ end)
 ## DataBase
 
 ```lua
+DataBase.Connect(dbType, odbc, user, password)
+DataBase.Close()
+DataBase.Clear()
+DataBase.Exec(sql)
 DataBase.Query(sql)
 DataBase.QueryGetNumber(sql, column)
 DataBase.QueryGetString(sql, column)
+DataBase.GetValue(tableName, columnName, whereColumn, whereValue)
+DataBase.GetString(tableName, columnName, whereColumn, whereValue)
+DataBase.SetValue(tableName, columnName, value, whereColumn, whereValue)
+DataBase.SetString(tableName, columnName, value, whereColumn, whereValue)
+DataBase.SetAddValue(tableName, columnName, value, whereColumn, whereValue)
+DataBase.SetDecreaseValue(tableName, columnName, value, whereColumn, whereValue)
+DataBase.CreateColumn(tableName, columnName, definition)
+DataBase.RunAfterLoad(callback)
 ```
 
 Executa consultas SQL.
+
+Para leitura de varias linhas, use uma conexao/cursor:
+
+```lua
+local db = DataBase.getDb()
+
+if db:exec("SELECT Id, Name FROM MinhaTabela ORDER BY Id") == 1 then
+	while db:fetch() ~= SQL_NO_DATA do
+		local id = db:getInt("Id")
+		local name = db:getStr("Name")
+	end
+end
+
+DataBase.Clear()
+```
+
+Metodos disponiveis no cursor:
+
+```lua
+db:exec(sql)
+db:fetch()
+db:getInt(column)
+db:getFloat(column)
+db:getStr(column)
+```
+
+`db:getInt`, `db:getFloat` e `db:getStr` leem pelo nome da coluna retornada no `SELECT`. Quando usar aliases, informe o alias no metodo. Em leituras linha a linha, leia as colunas na mesma ordem do `SELECT`.
 
 Exemplo:
 
@@ -241,6 +281,78 @@ local cash = DataBase.QueryGetNumber("SELECT WCoinC FROM CashShopData WHERE Acco
 ```
 
 Use consultas SQL com cuidado. Nunca confie em texto digitado pelo jogador sem validar.
+
+## DataBaseAsync
+
+```lua
+DataBaseAsync.Query(name, query, getResult, playerIndex)
+DataBaseAsync.GetStatus(name)
+DataBaseAsync.GetValue(name, column)
+DataBaseAsync.Delete(name)
+DataBaseAsync.SetValue(tableName, columnName, value, whereColumn, whereValue)
+DataBaseAsync.SetString(tableName, columnName, value, whereColumn, whereValue)
+DataBaseAsync.SetAddValue(tableName, columnName, value, whereColumn, whereValue)
+DataBaseAsync.SetDecreaseValue(tableName, columnName, value, whereColumn, whereValue)
+```
+
+Executa consultas sem travar o fluxo principal do GameServer.
+
+## Inventory
+
+```lua
+GET_ITEM(section, index)
+GetItemCount(playerIndex, section, index, level)
+TakeItem(playerIndex, section, index, level, count)
+InventoryCheckSpaceByItem(playerIndex, itemIndex)
+InventoryCheckSpaceByItems(playerIndex, itemIndexes)
+InventoryCheckSpace(playerIndex, width, height)
+GetInventoryItemIndex(playerIndex, slot)
+GetInventoryItemLevel(playerIndex, slot)
+TakeInventorySlot(playerIndex, slot)
+```
+
+Funcoes para consultar e consumir itens do inventario do jogador.
+
+Parametros:
+
+- `playerIndex`: index do jogador.
+- `section`: grupo do item.
+- `index`: numero do item dentro do grupo.
+- `level`: level do item. Use `-1` para aceitar qualquer level nas funcoes por tipo.
+- `count`: quantidade a remover.
+- `slot`: posicao do item no inventario.
+
+Retornos:
+
+- `GET_ITEM`: item index completo, ou `-1` se `section/index` forem invalidos.
+- `GetItemCount`: quantidade encontrada.
+- `TakeItem`: quantidade removida, ou `0` se nao foi possivel remover.
+- `InventoryCheckSpaceByItem`: `1` se ha espaco para o item informado.
+- `InventoryCheckSpaceByItems`: `1` se ha espaco para todos os itens da tabela, simulando a ocupacao do lote antes da entrega.
+- `InventoryCheckSpace`: `1` se ha espaco para um item com largura/altura informadas.
+- `GetInventoryItemIndex`: item index completo do slot, ou `-1` se o slot estiver vazio/invalido.
+- `GetInventoryItemLevel`: level do item no slot, ou `-1` se o slot estiver vazio/invalido.
+- `TakeInventorySlot`: `1` se removeu o item do slot informado, ou `0` se nao foi possivel remover.
+
+Exemplo por tipo de item:
+
+```lua
+local count = GetItemCount(playerIndex, 14, 13, -1)
+if count >= 1 then
+	TakeItem(playerIndex, 14, 13, -1, 1)
+end
+```
+
+Exemplo por slot:
+
+```lua
+local itemIndex = GetInventoryItemIndex(playerIndex, slot)
+local itemLevel = GetInventoryItemLevel(playerIndex, slot)
+
+if itemIndex > 0 and itemLevel >= 0 then
+	TakeInventorySlot(playerIndex, slot)
+end
+```
 
 ## Packet server -> client
 
@@ -256,3 +368,56 @@ Exemplo:
 User.SendClientPacket(playerIndex, "OpenNotice", "vip")
 ```
 
+## Packet builder server-side
+
+```lua
+CreatePacket(name, subHead)
+ClearPacket(name)
+SendPacket(name, playerIndex)
+SetBytePacket(name, value)
+SetWordPacket(name, value)
+SetDwordPacket(name, value)
+SetCharPacketLength(name, text, length)
+GetBytePacket(name, position)
+GetWordPacket(name, position)
+GetDwordPacket(name, position)
+GetCharPacketLength(name, position, length)
+```
+
+Monta e envia payload binario custom para o cliente.
+
+## Itens, monstro e personagem
+
+```lua
+GiveItem(playerIndex, section, index, level, durability, skill, luck, option, excellent, setOption, harmony, itemOptionEx, duration)
+CreateItemMap(map, x, y, section, index, level, durability, skill, luck, option, excellent, setOption, harmony, itemOptionEx, duration)
+ItemSerialCreate(playerIndex, map, x, y, itemIndex, level, durability, skill, luck, option, playerIndexTarget, excellent, setOption, harmony, itemOptionEx, socketOption, duration)
+ItemSerialCreatePeriodic(playerIndex, map, x, y, itemIndex, level, durability, skill, luck, option, playerIndexTarget, excellent, setOption, harmony, itemOptionEx, socketOption, duration)
+AddMonster(monsterClass, map, x, y, dir)
+SetMonster(monsterIndex, monsterClass)
+SetMapMonster(map, monsterClass, x, y, dir)
+CloseChar(playerIndex)
+Disconnect(playerIndex)
+RequestReloadScripts()
+GetUserIndexByName(name)
+GetUserByName(name)
+SendLuaPacket(playerIndex, packetName, data)
+FireworksSend(playerIndex, x, y)
+```
+
+Use `GiveItem` para criar item direto no inventario e `CreateItemMap` para criar item no mapa.
+
+`FireworksSend` dispara o efeito visual de fogos na posicao informada. Se `x` e `y` forem omitidos, usa a posicao atual do personagem.
+
+## Party
+
+```lua
+GetPartyMemberCount(partyNumber)
+GetPartyMemberIndex(partyNumber, memberSlot)
+GetPartyMemberNumber(playerIndex)
+IsMemberParty(playerIndex)
+IsPartyLeader(playerIndex)
+GetPartyMembers(playerIndex)
+```
+
+`GetPartyMembers` retorna uma tabela com os indices dos membros da party do jogador.

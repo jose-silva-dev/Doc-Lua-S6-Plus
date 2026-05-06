@@ -49,6 +49,7 @@ end
 
 ```lua
 Client.HttpRequest(options)
+ClientAPI.HttpPost(url, body, headers, maxBytes)
 ```
 
 Faz request HTTP/HTTPS com mais controle.

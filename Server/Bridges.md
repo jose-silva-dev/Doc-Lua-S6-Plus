@@ -23,23 +23,6 @@ return 1 ou true  = bloqueia o fluxo normal
 
 Quando a bridge e apenas informativa, o retorno e ignorado.
 
-## GameServer
-
-```lua
-GameServerFunctions.GameServer(function()
-end)
-```
-
-Chamado quando os scripts do GameServer terminam de carregar.
-
-Exemplo:
-
-```lua
-GameServerFunctions.GameServer(function()
-	LogPrint("Scripts carregados")
-end)
-```
-
 ## NpcTalk
 
 ```lua
@@ -80,12 +63,9 @@ Parametros:
 - `playerIndex`: jogador que matou.
 - `monsterIndex`: monstro morto.
 
-## UserLogin / EnterCharacter
+## EnterCharacter
 
 ```lua
-GameServerFunctions.UserLogin(function(playerIndex)
-end)
-
 GameServerFunctions.EnterCharacter(function(playerIndex)
 end)
 ```
@@ -101,12 +81,9 @@ GameServerFunctions.EnterCharacter(function(playerIndex)
 end)
 ```
 
-## UserLogout / PlayerLogout
+## PlayerLogout
 
 ```lua
-GameServerFunctions.UserLogout(function(playerIndex)
-end)
-
 GameServerFunctions.PlayerLogout(function(playerIndex, name, account)
 end)
 ```
@@ -121,6 +98,18 @@ end)
 ```
 
 Chamado quando um monstro morre.
+
+## PlayerDie / RespawnUser
+
+```lua
+GameServerFunctions.PlayerDie(function(killerIndex, deadIndex)
+end)
+
+GameServerFunctions.RespawnUser(function(playerIndex)
+end)
+```
+
+Chamados ao morrer e ao renascer.
 
 ## PlayerDropItem
 
@@ -212,6 +201,13 @@ GameServerFunctions.PlayerRepairItem(function(playerIndex, slot)
 end)
 ```
 
+`PlayerBuyShopItem` recebe:
+
+```lua
+function(buyerIndex, sellerIndex, slot, itemIndex, level, value)
+end
+```
+
 ## Party
 
 ```lua
@@ -233,3 +229,30 @@ Chamado quando o GameServer recalcula atributos do personagem.
 
 Use para aplicar bonus custom.
 
+## LevelUpPointAdd
+
+```lua
+GameServerFunctions.LevelUpPointAdd(function(playerIndex, type)
+end)
+```
+
+Chamado quando o jogador adiciona ponto em atributo.
+
+## ChatProc
+
+```lua
+GameServerFunctions.ChatProc(function(playerIndex, message)
+	return false
+end)
+```
+
+Chamado quando o jogador envia mensagem no chat. Retorne `true` para consumir a mensagem.
+
+## ClientPacket
+
+```lua
+GameServerFunctions.ClientPacket(function(playerIndex, packetName, data)
+end)
+```
+
+Recebe pacote enviado pelo Main Lua com `Client.Send` ou `ClientPacket.Send`.

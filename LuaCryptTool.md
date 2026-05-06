@@ -5,7 +5,7 @@ Ferramenta para criptografar scripts Lua do Server Side e Client Side.
 ## Local
 
 ```text
-MuServer\Tools\LuaCryptTool
+Tools\LuaCryptTool
 ```
 
 ## Estrutura
@@ -21,6 +21,11 @@ LuaCryptTool
 `-- ClientEncrypted
     `-- Data\Custom\Lua
 ```
+
+A ferramenta le somente o conteudo colocado manualmente nas pastas `ClientDecrypted` e `ServerDecrypted`.
+Ela gera apenas nas pastas `ClientEncrypted` e `ServerEncrypted`.
+
+Antes de gerar, a pasta encrypted de destino e limpa para evitar arquivo antigo sobrando no pacote.
 
 ## Server Side
 
@@ -69,21 +74,14 @@ Server:
 ```text
 Data\Scripts\LuaSystem
 Data\Scripts\Custom\Configs
-Data\Scripts\Custom\Libs
-Data\Scripts\Custom\Systems
-Data\Scripts\Custom
+Data\Scripts\Custom\System
 ```
 
 Client:
 
 ```text
 Data\Custom\Lua\Definitions
-Data\Custom\Lua\Controller
-Data\Custom\Lua\CharacterSystem
 Data\Custom\Lua\Customs\Configs
-Data\Custom\Lua\Customs\Libs
-Data\Custom\Lua\Customs\Systems
-Data\Custom\Lua\Customs
 Data\Custom\Lua\Systems
 ```
 
@@ -91,3 +89,5 @@ Data\Custom\Lua\Systems
 
 Arquivos de configuracao podem ficar abertos quando o cliente precisar editar valores.
 Scripts principais podem ser criptografados.
+
+Use `--keep-configs` para manter arquivos dentro de pastas `Configs` sem criptografar.

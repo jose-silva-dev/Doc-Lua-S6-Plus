@@ -34,6 +34,8 @@ Client.RenderText(20, 90, "Ola mundo", 200, 0, 1, 255, 255, 255, 255)
 Client.SetTextColor(red, green, blue, alpha)
 Client.SetTextBg(red, green, blue, alpha)
 Client.SetFontType(fontType)
+Client.RenderBox(x, y, width, height, alpha)
+Client.RenderColorBox(x, y, width, height, red, green, blue, alpha)
 ```
 
 Define estado de texto para renderizacoes seguintes.
@@ -52,6 +54,8 @@ Client.RenderText(20, 120, "Texto destacado", 220, 0, 1, -1, -1, -1, -1)
 
 ```lua
 Client.LoadImage(path, imageId)
+Client.GetImageWidth(imageId)
+Client.GetImageHeight(imageId)
 ```
 
 Carrega imagem do cliente.
@@ -116,6 +120,7 @@ Client.UnlockPlayerWalk()
 Client.IsInterfaceLocked()
 Client.IsPlayerWalkLocked()
 Client.BlockMouse()
+Client.ConsumeKey(vk)
 ```
 
 Exemplo:
@@ -130,6 +135,7 @@ end
 
 ```lua
 Client.IsKeyDown(vk)
+Client.ConsumeKey(vk)
 Client.GetMouseX()
 Client.GetMouseY()
 Client.GetMouseWheel()
@@ -149,7 +155,18 @@ Exemplo:
 if Client.IsKeyDown(0x78) then -- F9
 	MyWindow.open = not MyWindow.open
 end
+
+if MyWindow.open and Client.IsKeyDown(0x1B) then -- ESC
+	Client.ConsumeKey(0x1B)
+	MyWindow.open = false
+end
 ```
+
+`Client.ConsumeKey(vk)` deve ser chamado quando a janela Lua tratou uma tecla que tambem possui acao nativa. Para `ESC`, isso impede que o mesmo pressionamento continue abrindo o menu de opcoes ou fechando outras janelas nativas; a tecla permanece bloqueada ate ser solta.
+
+Janelas Lua podem ser movidas mantendo `x` e `y` em memoria no proprio script. Durante o arraste, leia `Client.GetMouseX()`, `Client.GetMouseY()` e `Client.IsMouseLeftButton()`, atualize a posicao e chame `Client.BlockMouse()` para impedir clique no jogo.
+
+Para janelas que precisam ficar acima do HUD inferior e de textos nativos, registre o desenho em `ClientHooks.RegisterRenderTop(name, callback)` ou implemente o callback global `RenderTop()`.
 
 ## Dados do personagem local
 
@@ -196,15 +213,29 @@ Client.RenderText(20, 80, text, 240, 0, 1, 255, 255, 255, 255)
 Client.GetLanguage()
 Client.GetCodePage()
 Client.GetResolution()
+ClientAPI.GetResolutionInfo()
 Client.GetVolume()
 Client.SetVolume(level)
+Client.GetWindowWidth()
+Client.GetWindowHeight()
+Client.GetInterfaceWidth()
+Client.GetInterfaceHeight()
+Client.GetOpenGLWindowWidth()
+Client.GetOpenGLWindowHeight()
+Client.GetFPS()
 Client.GetGlobalText(textId)
 Client.GetMapName(mapId)
 Client.GetMonsterName(monsterId)
 Client.GetPartyCount()
 Client.GetPing()
 Client.GetCamera3D()
+Client.SetGlowVisible(enabled)
+Client.IsGlowVisible()
+Client.SetEquipmentVisible(enabled)
+Client.IsEquipmentVisible()
 ```
+
+`Client.GetWindowWidth()` e `Client.GetWindowHeight()` retornam a resolucao fisica configurada. Para posicionar janelas Lua na mesma escala das interfaces nativas, use `Client.GetInterfaceWidth()` e `Client.GetInterfaceHeight()`.
 
 ## Inventario e tooltip
 
@@ -216,12 +247,15 @@ Client.GetInventoryMouseItemLevel()
 Client.GetInventoryMouseItemOption()
 Client.GetInventoryMouseItemExcellent()
 Client.GetInventoryMouseItemDurability()
+ClientAPI.GetInventoryMouseItemInfo()
 Client.GetItemName(itemIndex, level)
 Client.GetItemWidth(itemIndex)
 Client.GetItemHeight(itemIndex)
 Client.GetItemSlot(itemIndex)
 Client.ShowInventoryMouseItemTooltip(x, y)
 Client.ShowItemTooltip(x, y, itemIndex, level, option1, extOption)
+Client.ShowItemTooltipFull(x, y, itemIndex, level, skill, luck, option, extOption, setOption, harmony, itemOptionEx)
+Client.RenderItemScaled(x, y, width, height, itemIndex, level, option1, extOption, scale)
 ```
 
 Exemplo:
@@ -240,6 +274,7 @@ end
 
 ```lua
 Client.RenderItem(x, y, width, height, itemIndex, level, option1, extOption)
+Client.RenderItemScaled(x, y, width, height, itemIndex, level, option1, extOption, scale)
 ```
 
 Desenha preview 3D de item.
@@ -248,7 +283,12 @@ Exemplo:
 
 ```lua
 Client.RenderItem(100, 120, 40, 40, 7181, 0, 0, 0)
+Client.RenderItemScaled(100, 120, 18, 18, 7181, 0, 0, 0, 0.30)
 ```
+
+Use `RenderItemScaled` quando o item precisa caber em uma lista compacta. O `scale` e multiplicador da escala nativa do item.
+
+Use `ShowItemTooltipFull` quando o tooltip precisa representar um item composto no servidor com skill, luck, option, excellent, set/ancient, harmony e `ItemOptionEx`. A skill e codificada no byte de level do item temporario, enquanto o campo interno de excellent/opcao alta permanece separado. Em itens ancient, informe o `setOption` completo usado pelo servidor para que o preview exiba tambem a opcao individual do item, como `Increase Stamina +10`.
 
 ### Client.RenderCharacter
 
@@ -287,6 +327,11 @@ Desenha preview usando model id final.
 
 ```lua
 local info = Client.GetMonsterModelInfo(monsterIndex)
+Client.GetModelPlayer()
+Client.GetModelMonsterBase()
+Client.GetModelMonsterEnd()
+Client.GetKindPlayer()
+Client.GetKindMonster()
 ```
 
 Retorna dados para renderizar monstro com `RenderModel`.
@@ -303,7 +348,10 @@ end
 ## Packet client -> server
 
 ```lua
+Client.IsConnected()
+Client.IsReady()
 Client.Send(packetName, data)
+Client.SendPacket(packetName, data)
 ```
 
 Envia pacote custom para o GameServer.
@@ -321,10 +369,14 @@ ClientPacket.Create(name, subHead)
 ClientPacket.SetByte(name, value)
 ClientPacket.SetWord(name, value)
 ClientPacket.SetDword(name, value)
-ClientPacket.SetString(name, text)
+ClientPacket.SetChar(name, text)
+ClientPacket.SetCharLength(name, text, length)
+ClientPacket.Size(name)
+ClientPacket.GetData(name)
 ClientPacket.Send(name)
 ClientPacket.Clear(name)
 ```
 
 Usado para montar payload simples byte a byte.
 
+Veja tambem `Client\Packets.md`.
