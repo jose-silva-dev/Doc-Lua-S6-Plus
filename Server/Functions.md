@@ -246,6 +246,16 @@ DataBase.RunAfterLoad(callback)
 
 Executa consultas SQL.
 
+A conexao usa os dados enviados no `GameServer.lua`. Mesmo que o ODBC do Windows esteja configurado como conexao confiavel, o bridge Lua força `Trusted_Connection=No` e autentica com `user` e `password` informados em `DataBase.Connect`.
+
+Exemplo de startup:
+
+```lua
+function GameServer()
+	DataBase.Connect(3, "MuOnline", "sa", "senha")
+end
+```
+
 Para leitura de varias linhas, use uma conexao/cursor:
 
 ```lua
