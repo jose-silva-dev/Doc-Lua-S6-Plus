@@ -324,6 +324,51 @@ WHERE Code = 'VIP2026';
 
 Se o inventario estiver sem espaco, nenhum item do lote e entregue.
 
+## Janela do Cliente
+
+No cliente, a configuracao visual fica em:
+
+```text
+Data\Custom\Lua\Customs\Configs\GiftGuardianConfig.lua
+```
+
+Exemplo:
+
+```lua
+GiftGuardianConfig = {
+	enabled = true,
+	window = {
+		width = 300,
+		height = 270,
+		x = 170,
+		y = 96,
+		center = true,
+		maxItems = 6,
+		itemIconSize = 15,
+		itemIconScale = 0.30,
+		itemIconOffsetX = 0,
+		itemIconOffsetY = -2,
+	},
+	text = {
+		loading = "Buscando brindes...",
+	},
+}
+```
+
+A janela usa `RenderTop`, entao fica acima do HUD e dos textos nativos. Ela tambem pode ser movida pela barra superior; a posicao fica em memoria ate fechar o cliente.
+
+Cada clique em um item alterna entre marcado e desmarcado. Quando mais de um item estiver marcado, o botao mostra a quantidade selecionada.
+
+A listagem pode chegar em varios pacotes internos quando o codigo possui muitos brindes.
+
+Quando a retirada e recusada pelo servidor, a janela preserva a mensagem de erro recebida, como inventario sem espaco, mesmo que a lista de brindes seja reenviada em seguida.
+
+A renderizacao do icone do item usa escala reduzida para caber na linha da lista. Ao passar o mouse sobre a linha, o cliente exibe o tooltip nativo com o preview do item.
+
+Quando o cliente possui `ClientAPI.ShowItemTooltipFull`, o tooltip do brinde tambem recebe `Skill`, `Luck`, `Option`, `Excellent`, `SetOption`, `Harmony` e `ItemOptionEx` enviados pelo servidor. Isso permite conferir previews de itens simples e full antes da retirada usando a mesma composicao de bytes do item nativo.
+
+O preview deve representar exatamente os mesmos atributos que o servidor usa na entrega. Se um brinde for cadastrado com skill, luck, option, excellent, ancient ou harmony, o tooltip da lista deve exibir esses atributos antes da retirada.
+
 ## Observacoes Importantes
 
 - O cliente apenas mostra a janela e envia o codigo/ids selecionados.

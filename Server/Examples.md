@@ -34,6 +34,7 @@ ExampleLuaPacket.lua            packet builder server-side
 ExampleMove.lua                 movimento de personagem
 ExamplePlayerDropItem.lua       drop de item
 ExamplePlayerDieRespawn.lua     morte e respawn
+ExampleOnUserDamage.lua         alterar dano causado por jogador
 ExampleMoveItemEquip.lua        mover/equipar item
 ExampleUseItem.lua              uso de item
 ExampleTrade.lua                convite e OK de trade
@@ -61,3 +62,13 @@ OpenExtension("Custom\\System\\ExampleCommand.lua")
 ```
 
 Use exemplos apenas para teste ou como base para criar um sistema proprio em `Data\Scripts\Custom\System`.
+
+## Sistemas completos
+
+Guias de sistemas completos ficam em `Tutorials`, separados da referencia da API:
+
+```text
+Tutorials\GiftGuardian\README.md
+Tutorials\ChaosMachine\README.md
+Tutorials\CharFull\README.md
+```

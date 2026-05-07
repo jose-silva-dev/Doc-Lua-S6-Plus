@@ -114,6 +114,8 @@ end)
 
 Recebe pacote custom enviado pelo GameServer.
 
+Use nomes estaveis em vez de opcodes numericos quando a comunicacao passar pelo bridge Lua.
+
 Exemplo:
 
 ```lua
@@ -122,6 +124,12 @@ Client.OnPacket(function(packetName, data)
 		Notice.Open(data)
 	end
 end)
+```
+
+No servidor, o envio equivalente e:
+
+```lua
+User.SendClientPacket(playerIndex, "OpenNotice", "open=1")
 ```
 
 ## Client.OnHttpResponse

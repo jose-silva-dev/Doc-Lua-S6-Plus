@@ -111,6 +111,38 @@ end)
 
 Chamados ao morrer e ao renascer.
 
+## OnUserDamage
+
+```lua
+GameServerFunctions.OnUserDamage(function(playerIndex, targetIndex, damage, damageType, skill)
+	return damage
+end)
+```
+
+Chamado quando um jogador causa dano antes do dano ser aplicado ao alvo. Retornar um numero altera o dano aplicado. Retornar `nil` mantem o valor atual.
+
+Essa bridge e geral. Ela pode ser usada por qualquer sistema que precise ler ou alterar dano, como bonus por mapa, eventos, ranking de dano ou regras customizadas de PvP/PvM.
+
+Parametros:
+
+- `playerIndex`: jogador atacante.
+- `targetIndex`: alvo atingido.
+- `damage`: dano calculado ate aquele ponto.
+- `damageType`: tipo do dano. `0` = normal, `4` = elemental.
+- `skill`: ID da skill, ou `0` quando nao houver skill.
+
+Exemplo:
+
+```lua
+GameServerFunctions.OnUserDamage(function(playerIndex, targetIndex, damage, damageType, skill)
+	if damageType == 0 then
+		return math.floor(damage * 1.10)
+	end
+
+	return damage
+end)
+```
+
 ## PlayerDropItem
 
 ```lua

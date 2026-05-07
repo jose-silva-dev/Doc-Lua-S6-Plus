@@ -66,6 +66,18 @@ Exemplo:
 Client.LoadImage("Custom\\Lua\\Cache\\banner.jpg", 92010)
 ```
 
+Em assets convertidos do cliente, e comum o script apontar para `.tga` enquanto o arquivo fisico esta em `.ozt`. Exemplo:
+
+```lua
+Client.LoadImage("Custom\\Interface\\HP\\hp.tga", 73001)
+```
+
+Arquivo fisico esperado:
+
+```text
+Data\Custom\Interface\HP\hp.ozt
+```
+
 ### Client.RenderImage
 
 ```lua
@@ -237,6 +249,20 @@ Client.IsEquipmentVisible()
 
 `Client.GetWindowWidth()` e `Client.GetWindowHeight()` retornam a resolucao fisica configurada. Para posicionar janelas Lua na mesma escala das interfaces nativas, use `Client.GetInterfaceWidth()` e `Client.GetInterfaceHeight()`.
 
+`ClientAPI.GetResolutionInfo()` retorna todos esses valores em uma tabela:
+
+```lua
+{
+	resolution = string,
+	windowWidth = number,
+	windowHeight = number,
+	interfaceWidth = number,
+	interfaceHeight = number,
+	openGLWidth = number,
+	openGLHeight = number,
+}
+```
+
 ## Inventario e tooltip
 
 ```lua
@@ -362,6 +388,8 @@ Exemplo:
 Client.Send("MeuPacote", "texto")
 ```
 
+Use nomes estaveis para pacotes de sistemas Lua, evitando depender de opcodes numericos que podem existir no cliente nativo.
+
 ## ClientPacket builder
 
 ```lua
@@ -379,4 +407,218 @@ ClientPacket.Clear(name)
 
 Usado para montar payload simples byte a byte.
 
-Veja tambem `Client\Packets.md`.
+Aliases globais tambem estao disponiveis:
+
+```lua
+CreatePacket(name, subHead)
+ClearPacket(name)
+SendPacket(name, packetName)
+SetBytePacket(name, value)
+SetWordPacket(name, value)
+SetDwordPacket(name, value)
+SetCharPacket(name, text)
+SetCharPacketLength(name, text, length)
+GetBytePacket(name, position)
+GetWordPacket(name, position)
+GetDwordPacket(name, position)
+GetCharPacket(name, position)
+GetCharPacketLength(name, position, length)
+```
+
+## HTTP e conteudo remoto
+
+O cliente possui funcoes HTTP para baixar textos, JSON, HTML simples e imagens para interfaces Lua.
+
+Importante:
+
+- nao e navegador embutido;
+- nao executa JavaScript;
+- nao interpreta CSS completo;
+- o script Lua deve ler o conteudo e desenhar a interface com `Client.RenderText`, `Client.RenderImage`, botoes Lua e controles nativos.
+
+### Client.HttpGet
+
+```lua
+Client.HttpGet(url, maxBytes)
+```
+
+Baixa texto remoto curto.
+
+Retorno:
+
+```lua
+{
+	ok = true,
+	url = "...",
+	status = 200,
+	size = 1234,
+	data = "...",
+	error = "",
+	truncated = false,
+}
+```
+
+### Client.HttpRequest
+
+```lua
+Client.HttpRequest(options)
+ClientAPI.HttpPost(url, body, headers, maxBytes)
+```
+
+Opcoes:
+
+- `method`: `"GET"` ou `"POST"`;
+- `url`: endereco remoto;
+- `body`: corpo do POST;
+- `headers`: tabela de headers permitidos;
+- `maxBytes`: limite de resposta;
+- `timeoutMs`: timeout em milissegundos;
+- `httpsOnly`: `true` por padrao;
+- `allowedDomains`: lista de dominios permitidos.
+
+Headers permitidos:
+
+```text
+Accept
+Accept-Language
+Authorization
+Content-Type
+User-Agent
+X-Requested-With
+X-Lua-Client
+X-Api-Key
+```
+
+Exemplo:
+
+```lua
+local result = Client.HttpRequest({
+	method = "GET",
+	url = "https://site.com/api/",
+	maxBytes = 65536,
+	timeoutMs = 5000,
+	httpsOnly = true,
+	allowedDomains = {
+		"site.com",
+	},
+	headers = {
+		["Accept"] = "application/json",
+	},
+})
+```
+
+### Client.HttpRequestAsync
+
+```lua
+Client.HttpRequestAsync(requestId, options)
+```
+
+Executa request em segundo plano. A resposta chega pela bridge `Client.OnHttpResponse`, documentada em `Client\Bridges.md`.
+
+### Client.DownloadFile
+
+```lua
+Client.DownloadFile(url, fileName)
+```
+
+Baixa arquivo remoto para:
+
+```text
+Data\Custom\Lua\Cache
+```
+
+Retorno:
+
+```lua
+{
+	ok = true,
+	url = "...",
+	fileName = "banner.jpg",
+	path = ".\\Data\\Custom\\Lua\\Cache\\banner.jpg",
+	hresult = 0,
+	packed = true,
+	packedPath = ".\\Data\\Custom\\Lua\\Cache\\banner.OZJ",
+	error = "",
+}
+```
+
+Quando baixa imagem, o cliente pode preparar o formato usado pelo loader do MU:
+
+```text
+.jpg  -> cria tambem .OZJ
+.jpeg -> cria tambem .OZJ
+.tga  -> cria tambem .OZT
+```
+
+Mesmo chamando `Client.LoadImage` com `.jpg` ou `.tga`, o cliente usa o arquivo convertido preparado por baixo.
+
+## ClientAPI e helpers
+
+`ClientAPI` e uma camada de compatibilidade para scripts que preferem chamadas nesse namespace.
+
+Para scripts novos, prefira `Client.X`. Quando existir equivalente, `ClientAPI.X` chama a mesma funcao ou aplica uma protecao simples de retorno.
+
+Exemplos:
+
+```lua
+Client.RenderText(...)
+ClientAPI.RenderText(...)
+
+Client.HttpRequest(...)
+ClientAPI.HttpRequest(...)
+```
+
+Helpers disponiveis:
+
+```lua
+ClientAPI.IsMouseInRect(x, y, width, height)
+ClientAPI.IsMouseClickInRect(x, y, width, height)
+ClientAPI.GetInventoryMouseItemInfo()
+ClientAPI.GetResolutionInfo()
+ClientAPI.HttpPost(url, body, headers, maxBytes)
+Client.RegisterPacket
+Client.SendPacket
+```
+
+`Client.RegisterPacket` e alias para `Client.OnPacket`.
+
+`Client.SendPacket` e alias para `Client.Send`.
+
+## Janelas nativas
+
+IDs de janelas em `ClientAPI.Windows`:
+
+```lua
+ClientAPI.Windows.Friend
+ClientAPI.Windows.MoveMap
+ClientAPI.Windows.Party
+ClientAPI.Windows.GuildInfo
+ClientAPI.Windows.Trade
+ClientAPI.Windows.Storage
+ClientAPI.Windows.MixInventory
+ClientAPI.Windows.Command
+ClientAPI.Windows.Pet
+ClientAPI.Windows.NpcShop
+ClientAPI.Windows.Inventory
+ClientAPI.Windows.Character
+ClientAPI.Windows.ChatInput
+ClientAPI.Windows.WindowMenu
+ClientAPI.Windows.Option
+ClientAPI.Windows.Help
+ClientAPI.Windows.ChatLog
+ClientAPI.Windows.PartyInfo
+ClientAPI.Windows.MainFrame
+ClientAPI.Windows.SkillList
+ClientAPI.Windows.BuffWindow
+ClientAPI.Windows.MasterLevel
+ClientAPI.Windows.MiniMap
+ClientAPI.Windows.InventoryJewel
+```
+
+Exemplo:
+
+```lua
+if not Client.IsWindowOpen(ClientAPI.Windows.Inventory) then
+	Client.OpenWindow(ClientAPI.Windows.Inventory)
+end
+```

@@ -11,18 +11,16 @@ Documentacao
 |-- Server
 |   |-- Bridges.md
 |   |-- Functions.md
-|   |-- GiftGuardian.md
 |   |-- User.md
 |   `-- Examples.md
 |-- Client
 |   |-- Bridges.md
-|   |-- ClientAPI.md
-|   |-- Functions.md
-|   |-- GiftGuardian.md
-|   |-- Helpers.md
-|   |-- Packets.md
-|   `-- RemoteContent.md
+|   `-- Functions.md
 |-- Tutorials
+|   |-- CharFull
+|   |   `-- README.md
+|   |-- ChaosMachine
+|   |   `-- README.md
 |   `-- GiftGuardian
 |       `-- README.md
 `-- LuaCryptTool.md
@@ -38,6 +36,8 @@ Arquivos principais:
 Data\Scripts\GameServer.lua
 Data\Scripts\LuaSystem
 Data\Scripts\Custom\Configs
+Data\Scripts\Custom\System\ChaosMachine.lua
+Data\Scripts\Custom\System\CharFull.lua
 Data\Scripts\Custom\System\GiftGuardian.lua
 Data\Scripts\Custom\System\JewelBank.lua
 Data\Scripts\Custom\System\NpcExchange.lua
@@ -57,9 +57,21 @@ Data\Custom\Lua\Systems
 Data\Custom\Lua\Customs\Configs
 ```
 
+`Server\Bridges.md` documenta eventos como `NpcTalk`, `MonsterDie`, `OnUserDamage` e `ClientPacket`.
+
+`Server\Functions.md` documenta funcoes globais, banco de dados, inventario, itens, timers e pacotes.
+
+`Server\User.md` fica separado porque o objeto `User` possui muitos metodos e e usado por praticamente todos os scripts.
+
+`Server\Examples.md` lista exemplos prontos para copiar e testar.
+
+Sistemas completos ficam em `Tutorials`, para separar guia de uso da referencia da API.
+
 O sistema Jewel Bank do cliente usa janela Lua com posicao inicial configuravel e permite mover a janela pela barra superior. A posicao movida fica em memoria enquanto o cliente estiver aberto, respeita a escala interna da interface do jogo e volta ao padrao ao reiniciar o Main.
 
-O sistema Gift Guardian permite resgatar brindes por codigo. A janela e renderizada em camada superior e a entrega dos itens e sempre validada pelo servidor.
+`Client\Bridges.md` documenta callbacks do Main, como `Render`, `RenderTop`, `Update`, `UpdateKey`, `Client.OnPacket`, `Client.OnHttpResponse` e `ClientHooks`.
+
+`Client\Functions.md` documenta render, imagens, mouse/teclado, janelas, personagem local, packets, HTTP, `ClientAPI` e helpers.
 
 ## Padrao recomendado
 
@@ -95,4 +107,6 @@ Cada sistema possui sua propria pasta. Exemplo:
 
 ```text
 Tutorials\GiftGuardian\README.md
+Tutorials\ChaosMachine\README.md
+Tutorials\CharFull\README.md
 ```
