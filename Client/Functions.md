@@ -176,6 +176,17 @@ end
 
 `Client.ConsumeKey(vk)` deve ser chamado quando a janela Lua tratou uma tecla que tambem possui acao nativa. Para `ESC`, isso impede que o mesmo pressionamento continue abrindo o menu de opcoes ou fechando outras janelas nativas; a tecla permanece bloqueada ate ser solta.
 
+### Reload do Lua do cliente
+
+Quando o servidor/cliente distribuido tiver a opcao abaixo ativada no `MainInfo`, o `F6` recarrega o Lua do cliente sem fechar o Main:
+
+```ini
+[Lua]
+ClientLuaReload = 1
+```
+
+Esse atalho e restrito a personagem GM/Admin. Com `ClientLuaReload = 0`, o atalho fica desativado.
+
 Janelas Lua podem ser movidas mantendo `x` e `y` em memoria no proprio script. Durante o arraste, leia `Client.GetMouseX()`, `Client.GetMouseY()` e `Client.IsMouseLeftButton()`, atualize a posicao e chame `Client.BlockMouse()` para impedir clique no jogo.
 
 Para janelas que precisam ficar acima do HUD inferior e de textos nativos, registre o desenho em `ClientHooks.RegisterRenderTop(name, callback)` ou implemente o callback global `RenderTop()`.

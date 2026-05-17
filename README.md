@@ -65,9 +65,41 @@ Data\Custom\Lua\Customs\Configs
 
 `Server\Examples.md` lista exemplos prontos para copiar e testar.
 
+`LuaAPI` e `LuaSecurity` ficam disponiveis no server-side para consulta de versao, compatibilidade e configuracoes de seguranca em modo compativel.
+
+## Seguranca de callbacks
+
+No server-side, scripts comuns devem usar as APIs publicas normalmente: `GameServerFunctions.*`, `command:add`, `Timer.Interval` e `DataBase.RunAfterLoad`. Essas entradas ja executam callbacks com protecao interna do `LuaCore`.
+
+O dev so precisa chamar `LuaCore.SafeCall` manualmente em sistemas avancados, quando um script chama outro modulo diretamente fora das APIs publicas. Erros de callback protegidos sao registrados em `LOGS\LOG\LuaCore_YYYY-MM-DD.txt`.
+
 Sistemas completos ficam em `Tutorials`, para separar guia de uso da referencia da API.
 
 O sistema Jewel Bank do cliente usa janela Lua com posicao inicial configuravel e permite mover a janela pela barra superior. A posicao movida fica em memoria enquanto o cliente estiver aberto, respeita a escala interna da interface do jogo e volta ao padrao ao reiniciar o Main.
+
+No server-side, os sistemas com tabelas proprias criam/validam automaticamente a estrutura apos a conexao com a DB:
+
+- Jewel Bank: `CustomJewelBank`
+- CharFull: `LuaCharFullUse`
+- GiftGuardian: `GiftGuardianCodes`, `GiftGuardianRewards`, `GiftGuardianClaims`
+
+Para suporte manual em instalacoes novas ou DB restaurada, rode somente o update do sistema que sera usado em `MuServer\SQL\Lua`. Atualmente:
+
+- `Update1.6.2 - CustomJewelBank.sql`
+- `Update1.6.3 - CharFull.sql`
+- `Update1.6.3 - GiftGuardian.sql`
+
+## Padrao seguro para sistemas com economia
+
+Ao criar scripts que entregam premio, removem item, fazem deposito/saque ou gravam uso em tabela propria:
+
+- valide DB/tabela antes de mexer no inventario;
+- valide espaco antes de chamar `GiveItem`;
+- confira retorno de `DataBase.Exec`, `GiveItem`, `TakeItem` e `TakeInventorySlot`;
+- em saque/premio, reserve ou debite no DB antes de entregar item;
+- em deposito/troca, se remover item e o DB falhar, tente devolver o item imediatamente.
+
+Os sistemas oficiais seguem esse padrao sem exigir que o dev chame `LuaCore.SafeCall` manualmente nos eventos publicos.
 
 `Client\Bridges.md` documenta callbacks do Main, como `Render`, `RenderTop`, `Update`, `UpdateKey`, `Client.OnPacket`, `Client.OnHttpResponse` e `ClientHooks`.
 

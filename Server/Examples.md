@@ -9,6 +9,7 @@ Essa pasta nao e carregada automaticamente. Para testar, copie o exemplo desejad
 ```text
 ExampleCommand.lua              comando custom
 ExampleTimer.lua                timer de servidor
+ExampleLuaCoreDiagnostics.lua   comandos GM /luacore e /luacoretest
 ExampleLoginLogout.lua          entrada e saida de personagem
 ExampleNpcAndMonsterLog.lua     NpcTalk e MonsterDieGiveItem
 ExampleMonsterDie.lua           morte de monstro

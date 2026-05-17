@@ -2,6 +2,8 @@
 
 Bridges sao eventos chamados pelo GameServer. O script registra uma funcao e o servidor chama quando o evento acontecer.
 
+Todos os callbacks registrados por `GameServerFunctions` sao executados com protecao do `LuaCore`. Se um script gerar erro, o erro e registrado em `LOGS\LOG\LuaCore_YYYY-MM-DD.txt` e a cadeia de scripts continua segura.
+
 ## Exemplo base
 
 ```lua

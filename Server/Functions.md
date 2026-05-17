@@ -95,6 +95,69 @@ Exemplo:
 OpenExtension("Custom\\MeuSistema.lua")
 ```
 
+## LuaAPI / LuaSecurity
+
+```lua
+LuaAPI.GetVersion()
+LuaAPI.GetInfo()
+
+LuaSecurity.StrictMode
+LuaSecurity.WarnOnly
+LuaSecurity.MaxCallbackMs
+LuaSecurity.LogSlowCallbacks
+```
+
+`LuaAPI` informa a versao da API Lua carregada pelo GameServer.
+
+`LuaSecurity` concentra configuracoes de seguranca em modo compativel. Por padrao, ela nao remove funcoes antigas nem quebra scripts existentes.
+
+Exemplo:
+
+```lua
+local info = LuaAPI.GetInfo()
+LogPrint(string.format("LuaAPI %s compat=%s", info.version, info.compatibility))
+```
+
+Campos retornados por `LuaAPI.GetInfo()`:
+
+- `version`: versao da API Lua.
+- `buildDate`: data da base Lua.
+- `compatibility`: familia de compatibilidade atual.
+
+Configuracoes iniciais:
+
+```lua
+LuaSecurity.StrictMode = false
+LuaSecurity.WarnOnly = true
+LuaSecurity.MaxCallbackMs = 100
+LuaSecurity.LogSlowCallbacks = true
+```
+
+Quando `LuaSecurity.LogSlowCallbacks` esta ativo, callbacks protegidos que passam de `MaxCallbackMs` geram log em `LOGS\LOG\LuaCore_YYYY-MM-DD.txt`, mas continuam funcionando.
+
+## LuaCore
+
+```lua
+LuaCore.SafeCall(context, callback, ...)
+LuaCore.RegisterCallback(list, eventName, callback)
+```
+
+`LuaCore` e usado internamente para proteger callbacks com `xpcall`. Se um script gerar erro dentro de um evento, o erro vai para `LOGS\LOG\LuaCore_YYYY-MM-DD.txt` e os demais scripts continuam rodando.
+
+Scripts comuns normalmente nao precisam chamar `LuaCore` diretamente, mas ele esta disponivel para sistemas avancados.
+
+Exemplo:
+
+```lua
+local ok = LuaCore.SafeCall("MeuSistema.Teste", function()
+	error("erro de teste")
+end)
+
+if not ok then
+	LogPrint("Erro capturado sem derrubar o servidor Lua.")
+end
+```
+
 ## User.new
 
 ```lua
@@ -199,6 +262,8 @@ command:add(commandText, callback)
 
 Registra comando custom.
 
+Os callbacks de comandos sao protegidos pelo LuaCore. Um erro dentro de um comando e registrado em `LOGS\LOG\LuaCore_YYYY-MM-DD.txt` e nao derruba os demais callbacks Lua.
+
 Exemplo:
 
 ```lua
@@ -215,6 +280,8 @@ Timer.Interval(seconds, callback)
 ```
 
 Executa uma funcao repetidamente.
+
+Os callbacks de timer sao protegidos pelo LuaCore. Um erro dentro de um timer e registrado em `LOGS\LOG\LuaCore_YYYY-MM-DD.txt` e nao interrompe o restante da base Lua.
 
 Exemplo:
 
@@ -245,6 +312,8 @@ DataBase.RunAfterLoad(callback)
 ```
 
 Executa consultas SQL.
+
+Callbacks registrados em `DataBase.RunAfterLoad(callback)` sao executados com protecao do `LuaCore` apos a conexao do banco. Se o callback gerar erro, o erro vai para `LOGS\LOG\LuaCore_YYYY-MM-DD.txt`.
 
 A conexao usa os dados enviados no `GameServer.lua`. Mesmo que o ODBC do Windows esteja configurado como conexao confiavel, o bridge Lua força `Trusted_Connection=No` e autentica com `user` e `password` informados em `DataBase.Connect`.
 
@@ -291,6 +360,8 @@ local cash = DataBase.QueryGetNumber("SELECT WCoinC FROM CashShopData WHERE Acco
 ```
 
 Use consultas SQL com cuidado. Nunca confie em texto digitado pelo jogador sem validar.
+
+Em sistemas que mexem com economia, confira sempre o retorno de `DataBase.Exec`. Para saque/premio, grave a reserva/debito no DB antes de entregar item; se a entrega falhar, reverta o saldo/reserva. Para deposito/troca, se remover item antes de gravar no DB e o update falhar, tente devolver o item.
 
 ## DataBaseAsync
 
@@ -363,6 +434,8 @@ if itemIndex > 0 and itemLevel >= 0 then
 	TakeInventorySlot(playerIndex, slot)
 end
 ```
+
+Antes de `GiveItem`, use `InventoryCheckSpaceByItem` ou `InventoryCheckSpaceByItems`. Em entregas com mais de um item, prefira `InventoryCheckSpaceByItems`, porque ela valida o lote inteiro antes da criacao.
 
 ## Packet server -> client
 

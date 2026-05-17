@@ -2,6 +2,8 @@
 
 Bridges sao eventos/callbacks usados pelos scripts do Main.
 
+Os callbacks principais do client-side sao protegidos no Main para evitar crash por erro comum de Lua. Em `Client.OnPacket`, cada handler e isolado; se um handler falhar, os demais continuam sendo chamados.
+
 ## Render
 
 ```lua
