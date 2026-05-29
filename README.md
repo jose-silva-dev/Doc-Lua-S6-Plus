@@ -2,8 +2,6 @@
 
 Documentacao da API Lua Genesys Season 6 Plus.
 
-Use estes arquivos para consultar funcoes, bridges, parametros, retornos e exemplos.
-
 ## Estrutura
 
 ```text
@@ -11,17 +9,22 @@ Documentacao
 |-- Server
 |   |-- Bridges.md
 |   |-- Functions.md
-|   |-- User.md
-|   `-- Examples.md
+|   `-- User.md
 |-- Client
 |   |-- Bridges.md
 |   `-- Functions.md
 |-- Tutorials
+|   |-- AutoPost
+|   |   `-- README.md
 |   |-- CharFull
 |   |   `-- README.md
 |   |-- ChaosMachine
 |   |   `-- README.md
-|   `-- GiftGuardian
+|   |-- DailyReward
+|   |   `-- README.md
+|   |-- GiftGuardian
+|   |   `-- README.md
+|   `-- TopRanking
 |       `-- README.md
 `-- LuaCryptTool.md
 ```
@@ -63,35 +66,29 @@ Data\Custom\Lua\Customs\Configs
 
 `Server\User.md` fica separado porque o objeto `User` possui muitos metodos e e usado por praticamente todos os scripts.
 
-`Server\Examples.md` lista exemplos prontos para copiar e testar.
-
 `LuaAPI` e `LuaSecurity` ficam disponiveis no server-side para consulta de versao, compatibilidade e configuracoes de seguranca em modo compativel.
 
 ## Seguranca de callbacks
 
-No server-side, scripts comuns devem usar as APIs publicas normalmente: `GameServerFunctions.*`, `command:add`, `Timer.Interval` e `DataBase.RunAfterLoad`. Essas entradas ja executam callbacks com protecao interna do `LuaCore`.
-
-O dev so precisa chamar `LuaCore.SafeCall` manualmente em sistemas avancados, quando um script chama outro modulo diretamente fora das APIs publicas. Erros de callback protegidos sao registrados em `LOGS\LOG\LuaCore_YYYY-MM-DD.txt`.
-
-Sistemas completos ficam em `Tutorials`, para separar guia de uso da referencia da API.
-
-O sistema Jewel Bank do cliente usa janela Lua com posicao inicial configuravel e permite mover a janela pela barra superior. A posicao movida fica em memoria enquanto o cliente estiver aberto, respeita a escala interna da interface do jogo e volta ao padrao ao reiniciar o Main.
+Callbacks registrados via `GameServerFunctions.*`, `command:add`, `Timer.Interval` e `DataBase.RunAfterLoad` ja executam sob `LuaCore`. Erros em `LOGS\LOG\LuaCore_YYYY-MM-DD.txt`. Uso direto de `LuaCore.SafeCall` reservado para sistemas avancados que chamem outros modulos fora das APIs publicas.
 
 No server-side, os sistemas com tabelas proprias criam/validam automaticamente a estrutura apos a conexao com a DB:
 
 - Jewel Bank: `CustomJewelBank`
 - CharFull: `LuaCharFullUse`
 - GiftGuardian: `GiftGuardianCodes`, `GiftGuardianRewards`, `GiftGuardianClaims`
+- DailyReward: `LuaDailyReward`
 
 Para suporte manual em instalacoes novas ou DB restaurada, rode somente o update do sistema que sera usado em `MuServer\SQL\Lua`. Atualmente:
 
 - `Update1.6.2 - CustomJewelBank.sql`
 - `Update1.6.3 - CharFull.sql`
 - `Update1.6.3 - GiftGuardian.sql`
+- `Update1.6.5 - DailyReward.sql`
 
-## Padrao seguro para sistemas com economia
+## Padrao para sistemas com economia
 
-Ao criar scripts que entregam premio, removem item, fazem deposito/saque ou gravam uso em tabela propria:
+Em scripts que entregam premio, removem item, fazem deposito/saque ou gravam uso em tabela:
 
 - valide DB/tabela antes de mexer no inventario;
 - valide espaco antes de chamar `GiveItem`;
@@ -99,13 +96,11 @@ Ao criar scripts que entregam premio, removem item, fazem deposito/saque ou grav
 - em saque/premio, reserve ou debite no DB antes de entregar item;
 - em deposito/troca, se remover item e o DB falhar, tente devolver o item imediatamente.
 
-Os sistemas oficiais seguem esse padrao sem exigir que o dev chame `LuaCore.SafeCall` manualmente nos eventos publicos.
-
 `Client\Bridges.md` documenta callbacks do Main, como `Render`, `RenderTop`, `Update`, `UpdateKey`, `Client.OnPacket`, `Client.OnHttpResponse` e `ClientHooks`.
 
 `Client\Functions.md` documenta render, imagens, mouse/teclado, janelas, personagem local, packets, HTTP, `ClientAPI` e helpers.
 
-## Padrao recomendado
+## Convencao de chamadas
 
 ```lua
 Client.RenderText(...)
@@ -115,7 +110,7 @@ GameServerFunctions.NpcTalk(function(...)
 end)
 ```
 
-`ClientAPI` tambem esta disponivel como compatibilidade no client-side.
+`ClientAPI` disponivel como camada de compatibilidade no client-side.
 
 ## Exemplos
 
@@ -141,4 +136,7 @@ Cada sistema possui sua propria pasta. Exemplo:
 Tutorials\GiftGuardian\README.md
 Tutorials\ChaosMachine\README.md
 Tutorials\CharFull\README.md
+Tutorials\AutoPost\README.md
+Tutorials\TopRanking\README.md
+Tutorials\DailyReward\README.md
 ```

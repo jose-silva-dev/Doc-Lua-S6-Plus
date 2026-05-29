@@ -70,7 +70,7 @@ Em `mixes`, adicione uma entrada:
 }
 ```
 
-A configuracao padrao tambem pode trazer mixes de teste com diferentes porcentagens. Eles servem para validar perda por falha, custo em Zen e rate por VIP antes de criar as combinacoes definitivas do servidor.
+Mixes de teste vem na configuracao padrao para validar perda, custo e rate por VIP.
 
 Para desligar uma combinacao sem apagar:
 

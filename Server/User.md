@@ -253,3 +253,137 @@ Envia um pacote custom para o Lua do Main.
 local player = User.new(playerIndex)
 player:sendClientPacket("MinhaJanela", "open=1")
 ```
+
+## Lock e direcao
+
+```lua
+player:getLock()             -- 0 nao-locked, !=0 locked
+player:setLock(value)        -- aceita 0/1
+player:getDir()              -- 0..7
+```
+
+## Bonus de stats (somente leitura)
+
+```lua
+player:getAddStrength()
+player:getAddDexterity()
+player:getAddVitality()
+player:getAddEnergy()
+player:getAddLeadership()
+```
+
+Bonus vindos de itens equipados / set / option.
+
+## Estado de auto-attack
+
+```lua
+player:getAttackCustom()           -- 1 se /attack ativo, 0 caso contrario
+player:getAttackCustomOffline()    -- 1 se /offattack ativo
+player:getHelperTotalTime()        -- ticks restantes do MuHelper
+```
+
+## Master Level extra
+
+```lua
+player:getMasterPoint()
+player:setMasterPoint(value)       -- 0..2.000.000.000
+player:getMasterExperience()       -- read-only (uint64 retornado como number)
+```
+
+`setMasterPoint` aplica clamp em 0 e 2 bilhoes.
+
+## Fruit points
+
+```lua
+player:getFruitAddPoint()
+player:getFruitSubPoint()
+```
+
+Pontos de fruta usados (add) e removidos (sub).
+
+## Trade/Duel
+
+```lua
+player:getTradeDuel()              -- true se em trade ou duel
+```
+
+### Buffs e debuffs
+
+```lua
+player:addBuff(index, [duration], [v1], [v2], [v3], [v4])
+player:removeBuff(index)
+player:hasBuff(index)
+player:clearAllBuffs()
+player:clearDebuffs([count])
+```
+
+Manipula efeitos do `EffectManager`. `duration` em segundos (omita para
+usar o tempo do config). `v1..v4` variam por efeito.
+
+Exemplo:
+
+```lua
+player:addBuff(8, 300)   -- 5 min de Greater Life (HP)
+player:clearDebuffs()    -- remove debuffs, mantem buffs
+```
+
+Indices comuns: `1` damage, `2` defense, `5` critical, `8` life, `9` mana,
+`71` reflect, `129` ignore defense. Lista completa em `EffectManager.h`.
+
+### Inventario
+
+```lua
+player:getInventoryItem(slot)               -- table ou nil
+player:findItem(section, index, [level])    -- slot ou nil
+player:countItem(section, index, [level])   -- int
+player:hasInventorySpace(width, height)     -- bool
+player:takeItem(section, index, [level], [count])  -- int removidos
+player:giveItem(section, index, level, ...)        -- bool
+player:clearInventory([includeEquipment])          -- int removidos
+```
+
+`getInventoryItem` retorna `{section, index, type, level, durability, serial,
+option1, excellent, setOption, harmony, itemOptionEx}` ou `nil` se slot vazio.
+
+`giveItem` valida espaco antes de entregar (retorna `false` se nao cabe). Mesmos
+parametros opcionais do `GiveItem` global (level, durability, skill, luck,
+option, excellent, setOption, harmony, itemOptionEx, duration).
+
+`duration` espera epoch absoluto (Unix timestamp). Para X dias use `os.time() + X * 86400`:
+
+```lua
+u:giveItem(5, 8, 15, 0, 1, 1, 7, 63, 0, 0, 0, os.time() + 7 * 86400)
+```
+
+`clearInventory` por padrao preserva os slots 0-11 (equipment). Passe `true`
+para incluir.
+
+Exemplo:
+
+```lua
+local u = User.new(playerIndex)
+if u:countItem(14, 13) == 0 and u:hasInventorySpace(1, 1) then
+    u:giveItem(14, 13)   -- da 1 Jewel of Bless
+end
+```
+
+### Empacotar render de personagem para o cliente
+
+```lua
+User.SendCharacterRender(playerIndex, renderId, charName)
+player:sendCharacterRender(renderId, charName)
+```
+
+Envia ao cliente `playerIndex` os dados (classe + equipamento) do
+personagem `charName` indexados por `renderId`. O cliente desenha com
+`Client.RenderStoredCharacter(renderId, x, y, w, h, ...)`. Funciona com
+chars online (imediato) e offline (round-trip transparente).
+
+Exemplo:
+
+```lua
+User.SendCharacterRender(playerIndex, 2001, "Patricia")
+```
+
+Nomes com caracteres fora de `[A-Za-z0-9_]` ou maiores que 10 retornam
+`false`. Tutorial completo em `Tutorials/TopRanking/README.md`.

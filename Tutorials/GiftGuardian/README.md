@@ -365,11 +365,11 @@ Quando a retirada e recusada pelo servidor, a janela preserva a mensagem de erro
 
 A renderizacao do icone do item usa escala reduzida para caber na linha da lista. Ao passar o mouse sobre a linha, o cliente exibe o tooltip nativo com o preview do item.
 
-Quando o cliente possui `ClientAPI.ShowItemTooltipFull`, o tooltip do brinde tambem recebe `Skill`, `Luck`, `Option`, `Excellent`, `SetOption`, `Harmony` e `ItemOptionEx` enviados pelo servidor. Isso permite conferir previews de itens simples e full antes da retirada usando a mesma composicao de bytes do item nativo.
+Quando o cliente possui `ClientAPI.ShowItemTooltipFull`, o tooltip do brinde tambem recebe `Skill`, `Luck`, `Option`, `Excellent`, `SetOption`, `Harmony` e `ItemOptionEx` enviados pelo servidor. Mesma composicao de bytes do tooltip nativo.
 
-O preview deve representar exatamente os mesmos atributos que o servidor usa na entrega. Se um brinde for cadastrado com skill, luck, option, excellent, ancient ou harmony, o tooltip da lista deve exibir esses atributos antes da retirada.
+O preview deve representar exatamente os mesmos atributos que o servidor usa na entrega.
 
-## Observacoes Importantes
+## Observacoes
 
 - O cliente apenas mostra a janela e envia o codigo/ids selecionados.
 - A entrega e sempre validada pelo servidor.

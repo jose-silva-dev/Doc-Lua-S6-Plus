@@ -2,7 +2,7 @@
 
 Bridges sao eventos chamados pelo GameServer. O script registra uma funcao e o servidor chama quando o evento acontecer.
 
-Todos os callbacks registrados por `GameServerFunctions` sao executados com protecao do `LuaCore`. Se um script gerar erro, o erro e registrado em `LOGS\LOG\LuaCore_YYYY-MM-DD.txt` e a cadeia de scripts continua segura.
+Callbacks registrados via `GameServerFunctions` executam sob `LuaCore`. Erros sao registrados em `LOGS\LOG\LuaCore_YYYY-MM-DD.txt`; demais callbacks continuam executando.
 
 ## Exemplo base
 
@@ -65,14 +65,18 @@ Parametros:
 - `playerIndex`: jogador que matou.
 - `monsterIndex`: monstro morto.
 
-## EnterCharacter
+## EnterCharacter / OnPlayerLogin
 
 ```lua
 GameServerFunctions.EnterCharacter(function(playerIndex)
 end)
+
+GameServerFunctions.OnPlayerLogin(function(playerIndex)
+end)
 ```
 
-Chamado quando o jogador entra no jogo/personagem.
+Chamado quando o jogador entra no jogo/personagem (login completo, viewport
+e items ja enviados). `OnPlayerLogin` e alias de `EnterCharacter`.
 
 Exemplo:
 
@@ -101,17 +105,22 @@ end)
 
 Chamado quando um monstro morre.
 
-## PlayerDie / RespawnUser
+## PlayerDie / OnPlayerKill / RespawnUser
 
 ```lua
 GameServerFunctions.PlayerDie(function(killerIndex, deadIndex)
+end)
+
+GameServerFunctions.OnPlayerKill(function(killerIndex, deadIndex)
 end)
 
 GameServerFunctions.RespawnUser(function(playerIndex)
 end)
 ```
 
-Chamados ao morrer e ao renascer.
+`PlayerDie` dispara em qualquer morte (PvP, PvE, evento). `OnPlayerKill` e
+alias de `PlayerDie`. Para filtrar so PvP, valide no callback que
+`gObj[killerIndex].Type == OBJECT_USER`. `RespawnUser` dispara ao renascer.
 
 ## OnUserDamage
 
@@ -122,8 +131,6 @@ end)
 ```
 
 Chamado quando um jogador causa dano antes do dano ser aplicado ao alvo. Retornar um numero altera o dano aplicado. Retornar `nil` mantem o valor atual.
-
-Essa bridge e geral. Ela pode ser usada por qualquer sistema que precise ler ou alterar dano, como bonus por mapa, eventos, ranking de dano ou regras customizadas de PvP/PvM.
 
 Parametros:
 
@@ -261,8 +268,6 @@ end)
 
 Chamado quando o GameServer recalcula atributos do personagem.
 
-Use para aplicar bonus custom.
-
 ## LevelUpPointAdd
 
 ```lua
@@ -290,3 +295,90 @@ end)
 ```
 
 Recebe pacote enviado pelo Main Lua com `Client.Send` ou `ClientPacket.Send`.
+
+## OnMonsterReload
+
+```lua
+GameServerFunctions.OnMonsterReload(function()
+end)
+```
+
+Disparado quando os monstros do mapa sao recarregados (inicializacao do servidor
+ou apos `RequestReloadScripts()`). Cada chamada adiciona um handler; todos os
+registrados sao executados em ordem.
+
+```lua
+MyShop.SpawnNpc()
+GameServerFunctions.OnMonsterReload(MyShop.SpawnNpc)
+```
+
+> **Migracao 1.6.4 -> 1.6.5:** antes era preciso editar `GameServer.lua` e adicionar
+> uma chamada manual em `MonsterReload()`. Se voce tinha feito isso, mova a linha
+> pro proprio arquivo do sistema usando `GameServerFunctions.OnMonsterReload`.
+
+## OnUserItemPick *(1.6.5)*
+
+```lua
+GameServerFunctions.OnUserItemPick(function(playerIndex, mapItemIndex, itemIndex, itemLevel)
+    return false
+end)
+```
+
+Chamado quando o jogador clica em um item no chao, ANTES do servidor entregar o
+item ao inventario. Retornando `true` o pickup e bloqueado (item permanece no
+chao) e o cliente recebe `result = 0xFF` (falha generica).
+
+Parametros:
+
+- `playerIndex`: index do jogador.
+- `mapItemIndex`: index do item dentro de `gMap[].m_Item[]`.
+- `itemIndex`: item GET_ITEM-style (`group * 512 + index`).
+- `itemLevel`: nivel do item no chao.
+
+## PlayerLevelUp *(1.6.5)*
+
+```lua
+GameServerFunctions.PlayerLevelUp(function(playerIndex, newLevel)
+end)
+```
+
+Disparado depois que o servidor envia o pacote oficial de levelup ao cliente
+(`GCLevelUpSend`). Apenas notificacao -- retorno e ignorado.
+
+Parametros:
+
+- `playerIndex`: index do jogador.
+- `newLevel`: nivel atingido (`lpObj->Level` apos o incremento).
+
+Master Level: nao disparado.
+
+## OnCheckUserTarget *(1.6.5)*
+
+```lua
+GameServerFunctions.OnCheckUserTarget(function(attackerIndex, targetIndex)
+    return false
+end)
+```
+
+Chamado quando um jogador tenta atacar outro jogador (PvP). Roda antes da
+logica de `DisablePvp` e validacao de duel/event. Retorno `true` cancela o
+ataque (sem dano).
+
+Parametros:
+
+- `attackerIndex`: jogador que tentou atacar.
+- `targetIndex`: alvo do ataque.
+
+Exemplo:
+
+```lua
+GameServerFunctions.OnCheckUserTarget(function(attackerIndex, targetIndex)
+    local attacker = User.new(attackerIndex)
+    local target = User.new(targetIndex)
+    if attacker:getLevel() - target:getLevel() > 30 and not attacker:isGM() then
+        SendMessage("Voce esta muito acima do nivel do alvo.", attackerIndex, 1)
+        return true
+    end
+    return false
+end)
+```

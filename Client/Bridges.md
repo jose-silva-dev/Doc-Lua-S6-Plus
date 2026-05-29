@@ -172,12 +172,9 @@ ClientHooks.UnregisterClick(name)
 ClientHooks.UnregisterRightClick(name)
 ```
 
-Wrapper recomendado para sistemas grandes, evitando sobrescrever funcoes globais.
+Wrapper para registrar handlers sem sobrescrever globais.
 
-Callbacks de teclado podem retornar `true` quando o sistema consumiu a tecla.
-Esse retorno interrompe o fluxo nativo de teclado naquele frame.
-Para teclas que tambem tem acao nativa, use `Client.ConsumeKey(vk)` ao tratar a tecla.
-No caso de `ESC`, `Client.ConsumeKey(0x1B)` faz a janela Lua ter prioridade sobre o menu nativo e sobre o fechamento de outras interfaces nativas ate a tecla ser solta.
+Callbacks de teclado podem retornar `true` para consumir a tecla. Para teclas com acao nativa, chame `Client.ConsumeKey(vk)`. Para `ESC` (`0x1B`), a janela Lua tem prioridade sobre o menu nativo ate a tecla ser solta. Para atalhos globais lidos via `Client.IsKeyDown(vk)`, consulte `Client.IsKeyboardInputCaptured()` antes.
 
 Exemplo:
 
@@ -197,4 +194,4 @@ ClientHooks.RegisterUpdateKey("MinhaJanela", function(key, down, wasDown)
 end)
 ```
 
-Para janelas moveis, use `Client.GetMouseX()`, `Client.GetMouseY()`, `Client.IsMouseLeftButton()` e `Client.BlockMouse()` dentro de `RegisterUpdateMouse`. Guarde `x` e `y` em uma tabela Lua do sistema para manter a posicao enquanto o cliente estiver aberto.
+Para janelas moveis, use `Client.GetMouseX()`, `Client.GetMouseY()`, `Client.IsMouseLeftButton()` e `Client.BlockMouse()` dentro de `RegisterUpdateMouse`. Guarde `x` e `y` em uma tabela Lua para manter a posicao.

@@ -39,9 +39,9 @@ debug = false
 
 `requireGM = true` limita o uso a contas GM.
 
-`maxUsePerAccount = 1` permite usar uma vez por conta. Use `0` para liberar sem limite em ambiente de teste.
+`maxUsePerAccount = 1` permite usar uma vez por conta. Use `0` para uso ilimitado.
 
-`closeCharacterAfterUse = true` fecha o personagem apos aplicar os atributos, para atualizar os dados no cliente com seguranca.
+`closeCharacterAfterUse = true` fecha o personagem apos aplicar os atributos.
 
 ## Valores aplicados
 

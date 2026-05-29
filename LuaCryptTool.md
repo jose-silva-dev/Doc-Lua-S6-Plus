@@ -25,7 +25,7 @@ LuaCryptTool
 A ferramenta le somente o conteudo colocado manualmente nas pastas `ClientDecrypted` e `ServerDecrypted`.
 Ela gera apenas nas pastas `ClientEncrypted` e `ServerEncrypted`.
 
-Antes de gerar, a pasta encrypted de destino e limpa para evitar arquivo antigo sobrando no pacote.
+A pasta encrypted de destino e limpa antes de cada geracao.
 
 ## Server Side
 
@@ -85,9 +85,8 @@ Data\Custom\Lua\Customs\Configs
 Data\Custom\Lua\Systems
 ```
 
-## Observacao
+## Configs abertas
 
-Arquivos de configuracao podem ficar abertos quando o cliente precisar editar valores.
-Scripts principais podem ser criptografados.
+Arquivos em `Configs` podem ficar abertos; scripts principais devem ser criptografados.
 
-Use `--keep-configs` para manter arquivos dentro de pastas `Configs` sem criptografar.
+Use `--keep-configs` para preservar pastas `Configs`.

@@ -148,6 +148,7 @@ end
 ```lua
 Client.IsKeyDown(vk)
 Client.ConsumeKey(vk)
+Client.IsKeyboardInputCaptured()
 Client.GetMouseX()
 Client.GetMouseY()
 Client.GetMouseWheel()
@@ -160,6 +161,8 @@ Client.IsMouseLeftButtonPop()
 Client.IsMouseRightButtonPop()
 Client.IsWindowActive()
 ```
+
+`Client.IsKeyboardInputCaptured()` retorna `true` quando o teclado esta focado em chat/editbox nativo ou quando uma janela Lua travou a interface. Use antes de atalhos globais lidos por `Client.IsKeyDown`.
 
 Exemplo:
 
@@ -187,9 +190,7 @@ ClientLuaReload = 1
 
 Esse atalho e restrito a personagem GM/Admin. Com `ClientLuaReload = 0`, o atalho fica desativado.
 
-Janelas Lua podem ser movidas mantendo `x` e `y` em memoria no proprio script. Durante o arraste, leia `Client.GetMouseX()`, `Client.GetMouseY()` e `Client.IsMouseLeftButton()`, atualize a posicao e chame `Client.BlockMouse()` para impedir clique no jogo.
-
-Para janelas que precisam ficar acima do HUD inferior e de textos nativos, registre o desenho em `ClientHooks.RegisterRenderTop(name, callback)` ou implemente o callback global `RenderTop()`.
+Para janelas acima do HUD, registre o desenho em `ClientHooks.RegisterRenderTop(name, callback)` ou implemente o callback global `RenderTop()`.
 
 ## Dados do personagem local
 
@@ -291,7 +292,7 @@ Client.GetItemHeight(itemIndex)
 Client.GetItemSlot(itemIndex)
 Client.ShowInventoryMouseItemTooltip(x, y)
 Client.ShowItemTooltip(x, y, itemIndex, level, option1, extOption)
-Client.ShowItemTooltipFull(x, y, itemIndex, level, skill, luck, option, extOption, setOption, harmony, itemOptionEx)
+Client.ShowItemTooltipFull(x, y, itemIndex, level, skill, luck, option, extOption, setOption, harmony, itemOptionEx, [duration])
 Client.RenderItemScaled(x, y, width, height, itemIndex, level, option1, extOption, scale)
 ```
 
@@ -312,6 +313,7 @@ end
 ```lua
 Client.RenderItem(x, y, width, height, itemIndex, level, option1, extOption)
 Client.RenderItemScaled(x, y, width, height, itemIndex, level, option1, extOption, scale)
+Client.RenderItemCentered(x, y, width, height, itemIndex, level, option1, extOption, scale)
 ```
 
 Desenha preview 3D de item.
@@ -321,11 +323,19 @@ Exemplo:
 ```lua
 Client.RenderItem(100, 120, 40, 40, 7181, 0, 0, 0)
 Client.RenderItemScaled(100, 120, 18, 18, 7181, 0, 0, 0, 0.30)
+Client.RenderItemCentered(100, 120, 40, 40, 7181, 0, 0, 0, 0.50)
 ```
 
-Use `RenderItemScaled` quando o item precisa caber em uma lista compacta. O `scale` e multiplicador da escala nativa do item.
+Use `RenderItemScaled` para itens em listas compactas. `scale` multiplica a escala nativa.
 
-Use `ShowItemTooltipFull` quando o tooltip precisa representar um item composto no servidor com skill, luck, option, excellent, set/ancient, harmony e `ItemOptionEx`. A skill e codificada no byte de level do item temporario, enquanto o campo interno de excellent/opcao alta permanece separado. Em itens ancient, informe o `setOption` completo usado pelo servidor para que o preview exiba tambem a opcao individual do item, como `Increase Stamina +10`.
+`RenderItemCentered` centraliza o item no bounding box, ignorando `pos[X]/pos[Y]` em `CustomItemPosition`. Mesmos parametros de `RenderItemScaled`. Hit-test usa `(x, y, width, height)` original.
+
+`ShowItemTooltipFull` representa item composto no servidor:
+
+- Skill e codificada no byte de level; excellent/opcao alta no campo separado.
+- Em itens ancient, informe `setOption` completo para o preview incluir a opcao individual.
+
+Parametro opcional `duration` em segundos a partir de agora. Maior que `0` ativa a linha `Dia de Expiracao` no tooltip. Use `604800` para 7 dias.
 
 ### Client.RenderCharacter
 
@@ -342,6 +352,25 @@ Client.RenderCharacterPacket(id, x, y, width, height, classType, change, equipme
 ```
 
 Desenha personagem a partir de dados informados pelo script.
+
+### Client.RenderStoredCharacter
+
+```lua
+Client.RenderStoredCharacter(renderId, x, y, width, height, angle, zoom, animation)
+Client.HasStoredCharacter(renderId)
+Client.ClearStoredCharacter(renderId)
+```
+
+Desenha personagem cujos dados foram empacotados pelo servidor com
+`User.SendCharacterRender(playerIndex, renderId, name)`.
+
+Exemplo:
+
+```lua
+Client.RenderStoredCharacter(2001, 80, 200, 120, 160, 90, 0.8, 0)
+```
+
+`HasStoredCharacter` checa se ja chegou. `ClearStoredCharacter` libera o slot.
 
 ### Client.RenderMonster
 
@@ -438,9 +467,9 @@ GetCharPacketLength(name, position, length)
 
 ## HTTP e conteudo remoto
 
-O cliente possui funcoes HTTP para baixar textos, JSON, HTML simples e imagens para interfaces Lua.
+O cliente possui funcoes HTTP para baixar textos, JSON, HTML simples e imagens.
 
-Importante:
+Limites:
 
 - nao e navegador embutido;
 - nao executa JavaScript;
@@ -553,7 +582,7 @@ Retorno:
 }
 ```
 
-Quando baixa imagem, o cliente pode preparar o formato usado pelo loader do MU:
+Conversoes automaticas de formato:
 
 ```text
 .jpg  -> cria tambem .OZJ
@@ -561,13 +590,11 @@ Quando baixa imagem, o cliente pode preparar o formato usado pelo loader do MU:
 .tga  -> cria tambem .OZT
 ```
 
-Mesmo chamando `Client.LoadImage` com `.jpg` ou `.tga`, o cliente usa o arquivo convertido preparado por baixo.
+O loader resolve `.jpg`/`.tga` para `.OZJ`/`.OZT` automaticamente.
 
 ## ClientAPI e helpers
 
-`ClientAPI` e uma camada de compatibilidade para scripts que preferem chamadas nesse namespace.
-
-Para scripts novos, prefira `Client.X`. Quando existir equivalente, `ClientAPI.X` chama a mesma funcao ou aplica uma protecao simples de retorno.
+`ClientAPI` e camada de compatibilidade. Quando existir equivalente, `ClientAPI.X` chama a mesma funcao ou aplica protecao simples de retorno.
 
 Exemplos:
 

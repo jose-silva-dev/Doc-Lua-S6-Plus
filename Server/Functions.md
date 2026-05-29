@@ -109,7 +109,7 @@ LuaSecurity.LogSlowCallbacks
 
 `LuaAPI` informa a versao da API Lua carregada pelo GameServer.
 
-`LuaSecurity` concentra configuracoes de seguranca em modo compativel. Por padrao, ela nao remove funcoes antigas nem quebra scripts existentes.
+`LuaSecurity` concentra configuracoes de seguranca em modo compativel.
 
 Exemplo:
 
@@ -142,9 +142,7 @@ LuaCore.SafeCall(context, callback, ...)
 LuaCore.RegisterCallback(list, eventName, callback)
 ```
 
-`LuaCore` e usado internamente para proteger callbacks com `xpcall`. Se um script gerar erro dentro de um evento, o erro vai para `LOGS\LOG\LuaCore_YYYY-MM-DD.txt` e os demais scripts continuam rodando.
-
-Scripts comuns normalmente nao precisam chamar `LuaCore` diretamente, mas ele esta disponivel para sistemas avancados.
+`LuaCore` protege callbacks com `xpcall`; erros vao para `LOGS\LOG\LuaCore_YYYY-MM-DD.txt` e demais scripts continuam executando. Uso direto reservado para sistemas avancados.
 
 Exemplo:
 
@@ -154,7 +152,7 @@ local ok = LuaCore.SafeCall("MeuSistema.Teste", function()
 end)
 
 if not ok then
-	LogPrint("Erro capturado sem derrubar o servidor Lua.")
+	LogPrint("erro capturado")
 end
 ```
 
@@ -359,9 +357,9 @@ local account = "genesys"
 local cash = DataBase.QueryGetNumber("SELECT WCoinC FROM CashShopData WHERE AccountID='" .. account .. "'", "WCoinC")
 ```
 
-Use consultas SQL com cuidado. Nunca confie em texto digitado pelo jogador sem validar.
+Validar entrada de jogador antes de concatenar em SQL.
 
-Em sistemas que mexem com economia, confira sempre o retorno de `DataBase.Exec`. Para saque/premio, grave a reserva/debito no DB antes de entregar item; se a entrega falhar, reverta o saldo/reserva. Para deposito/troca, se remover item antes de gravar no DB e o update falhar, tente devolver o item.
+Padrao para economia: ver README "Padrao para sistemas com economia".
 
 ## DataBaseAsync
 
@@ -389,6 +387,7 @@ InventoryCheckSpaceByItems(playerIndex, itemIndexes)
 InventoryCheckSpace(playerIndex, width, height)
 GetInventoryItemIndex(playerIndex, slot)
 GetInventoryItemLevel(playerIndex, slot)
+GetInventoryItemDurability(playerIndex, slot)
 TakeInventorySlot(playerIndex, slot)
 ```
 
@@ -413,6 +412,7 @@ Retornos:
 - `InventoryCheckSpace`: `1` se ha espaco para um item com largura/altura informadas.
 - `GetInventoryItemIndex`: item index completo do slot, ou `-1` se o slot estiver vazio/invalido.
 - `GetInventoryItemLevel`: level do item no slot, ou `-1` se o slot estiver vazio/invalido.
+- `GetInventoryItemDurability`: durabilidade do item no slot (0..255), ou `-1` se o slot estiver vazio/invalido. Util para verificar desgaste antes de oferecer reparo, consumir charges ou aplicar buff que dependa de equipamento intacto.
 - `TakeInventorySlot`: `1` se removeu o item do slot informado, ou `0` se nao foi possivel remover.
 
 Exemplo por tipo de item:
@@ -435,7 +435,7 @@ if itemIndex > 0 and itemLevel >= 0 then
 end
 ```
 
-Antes de `GiveItem`, use `InventoryCheckSpaceByItem` ou `InventoryCheckSpaceByItems`. Em entregas com mais de um item, prefira `InventoryCheckSpaceByItems`, porque ela valida o lote inteiro antes da criacao.
+Antes de `GiveItem`, use `InventoryCheckSpaceByItem`. Para multiplos itens, prefira `InventoryCheckSpaceByItems` (valida o lote).
 
 ## Packet server -> client
 
@@ -450,6 +450,16 @@ Exemplo:
 ```lua
 User.SendClientPacket(playerIndex, "OpenNotice", "vip")
 ```
+
+## Render de personagem
+
+```lua
+User.SendCharacterRender(playerIndex, renderId, charName)
+```
+
+Envia classe + equipamento de um personagem para o cliente desenhar com
+`Client.RenderStoredCharacter`. Veja `Server/User.md` e
+`Tutorials/TopRanking/README.md`.
 
 ## Packet builder server-side
 
@@ -487,8 +497,6 @@ GetUserByName(name)
 SendLuaPacket(playerIndex, packetName, data)
 FireworksSend(playerIndex, x, y)
 ```
-
-Use `GiveItem` para criar item direto no inventario e `CreateItemMap` para criar item no mapa.
 
 `FireworksSend` dispara o efeito visual de fogos na posicao informada. Se `x` e `y` forem omitidos, usa a posicao atual do personagem.
 
