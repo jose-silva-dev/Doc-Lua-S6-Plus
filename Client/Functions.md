@@ -660,3 +660,65 @@ if not Client.IsWindowOpen(ClientAPI.Windows.Inventory) then
 	Client.OpenWindow(ClientAPI.Windows.Inventory)
 end
 ```
+
+## Estilo de nome do personagem
+
+Permite estilizar o **nome de um personagem** (pela string exata do nome) tanto **acima da cabeca** quanto **no chat**: cor, fonte e efeitos de "wave". O estilo fica registrado ate ser limpo ou o cliente reiniciar; vale para qualquer personagem que tenha aquele nome.
+
+```lua
+Client.SetNameStyle(nome, r, g, b, fontType, waveMode [, r2, g2, b2])
+Client.SetNameStyleMulti(nome, fontType, { {r,g,b}, {r,g,b}, ... })
+Client.ClearNameStyle(nome)
+Client.ClearAllNameStyles()
+```
+
+Parametros:
+
+- `r, g, b`: cor 0-255. Use `r < 0` para **manter a cor padrao** do jogo (muda so fonte/efeito).
+- `fontType`: `0` normal, `1` negrito, `2` grande, `3` fixa. No nome **acima da cabeca** so o negrito tem efeito (engrossa o texto); `grande`/`fixa` so aparecem na janela de info detalhada. No **chat** todas funcionam.
+- `waveMode`:
+  - `0` sem efeito (cor fixa).
+  - `1` arco-iris animado (efeito nativo; ignora a RGB).
+  - `2` pulsa o brilho da RGB escolhida.
+  - `3` oscila entre 2 cores (passe `r2, g2, b2`).
+- `SetNameStyleMulti`: ciclo suave por **N cores** (lista de `{r,g,b}`).
+
+Exemplo:
+
+```lua
+-- staff em vermelho negrito pulsando
+Client.SetNameStyle("Admin", 255, 40, 40, 1, 2)
+
+-- nome oscilando entre rosa e ciano
+Client.SetNameStyle("Patricia", 255, 120, 220, 0, 3, 60, 220, 255)
+
+-- nome ciclando por varias cores fortes
+Client.SetNameStyleMulti("Gato", 1, {
+    { 255, 0, 0 }, { 255, 255, 0 }, { 0, 255, 0 }, { 0, 120, 255 },
+})
+```
+
+> O registro e por **nome exato**. Para aplicar por grupo (cargo, VIP, classe) o script monta a lista de nomes e chama `SetNameStyle` para cada um, na logica que o servidor quiser.
+
+## Imagem acima da cabeca
+
+Exibe uma imagem custom acima da cabeca de um personagem (por nome exato), no estilo do "balao" de GM. Funciona para player, monstro e NPC. Carregue a imagem antes com `Client.LoadImage` (qualquer `.tga`/`.ozt` da pasta do cliente).
+
+```lua
+Client.SetHeadImage(nome, imageId, w, h [, ox, oy])
+Client.ClearHeadImage(nome)
+Client.ClearAllHeadImages()
+```
+
+- `imageId`: id usado no `Client.LoadImage`.
+- `w, h`: tamanho em pixels.
+- `ox, oy`: ajuste fino de posicao (opcionais). `oy` maior **desce** a imagem (mais junto do nome); menor/negativo sobe. A imagem fica centralizada acima da cabeca.
+
+Exemplo:
+
+```lua
+Client.LoadImage("Custom\\Interface\\dailyre.tga", 70200)
+Client.SetHeadImage("Admin", 70200, 32, 32, 0, -6)
+```
+
+> Para **NPC**, o nome normalmente so aparece no hover. Ao registrar uma imagem, o NPC passa a ser desenhado todo frame, entao a **imagem e o nome do NPC ficam sempre visiveis** (so para NPCs com imagem registrada). `ClearHeadImage` reverte ao normal. Para player/monstro o nome ja e sempre visivel; nada muda alem da imagem.

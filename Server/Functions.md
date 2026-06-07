@@ -65,6 +65,24 @@ Exemplo:
 SendMessageGlobal("Evento iniciado!", 1)
 ```
 
+> `SendMessage`/`SendMessageGlobal` usam o sistema de **notice** (aparece no frame de aviso, geralmente no topo). Para o estilo do **`/post` nativo** (aparece embaixo, no chat global), use `SendGlobalPost` abaixo.
+
+## SendGlobalPost
+
+```lua
+SendGlobalPost(nome, mensagem [, tipo])
+```
+
+Publica um **post global** identico ao comando `/post` nativo (a linha `[POST]` que aparece no chat de todos os jogadores). `nome` e o autor exibido; `tipo` (opcional, padrao `0`) seleciona o estilo do post — deixe `0` para o mesmo estilo do `/post` do seu servidor.
+
+Exemplo:
+
+```lua
+SendGlobalPost(player:getName(), "Vendendo itens raros!", 0)
+```
+
+Usado, por exemplo, pelo sistema AutoPost (`/post auto`) para repetir o anuncio no mesmo estilo do `/post` comum.
+
 ## OpenFolder
 
 ```lua
@@ -268,6 +286,21 @@ Exemplo:
 command:add("/info", function(playerIndex, args, message)
 	local player = User.new(playerIndex)
 	SendMessage("Ola, " .. player:getName(), playerIndex, 1)
+end)
+```
+
+### Ceder o comando ao nativo (retornar `false`)
+
+Se o callback retornar **`false`**, o comando e tratado como "nao tratado" e o **comando nativo** do GameServer assume. Util para reaproveitar um comando nativo e so interceptar um subcomando. Retornar `nil`/`true` (o padrao) mantem o comando tratado pelo Lua.
+
+```lua
+-- intercepta apenas "/post auto ..."; qualquer outro /post cai no nativo
+command:add("/post", function(playerIndex, args, message)
+	if (args[1] or ""):lower() ~= "auto" then
+		return false   -- deixa o /post nativo agir
+	end
+	-- ... trata o auto post aqui ...
+	return true
 end)
 ```
 

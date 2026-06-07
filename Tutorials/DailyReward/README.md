@@ -229,7 +229,29 @@ Data\Custom\Interface\glow.ozt
 
 O formato OZT e `4 bytes de prefixo` + `imagem nativa` (PNG, TGA, etc). Sem encriptacao. Para trocar a imagem, gere o arquivo com seus 4 bytes de header e substitua.
 
-O botao fica no canto superior direito. Suas posicoes seguem a escala automatica do cliente (`UIScale`). Ao abrir uma janela modal (Inventario `V`, Cash Shop `X`, Gens `B`, Trade, Storage, Friend, Move Map etc), o botao some automaticamente.
+O botao fica no canto superior direito. Suas posicoes seguem a escala automatica do cliente (`UIScale`). Ao abrir uma janela modal (Inventario `V`, Cash Shop `X`, Gens `B`, Trade, Storage, Friend, Move Map, **janelas de dialogo de NPC** — quest, loja, gens/steward, guild master, etc), o botao some automaticamente.
+
+## Premio Final
+
+Alem dos rewards diarios, existe um **premio final** entregue **uma vez por mes** a quem
+coletar **todos os dias** do mes. Aparece como um slot em destaque (borda dourada) abaixo
+do calendario; fica bloqueado ate o jogador coletar todos os dias, e entao acende para
+resgate.
+
+Configuracao (nas DUAS configs, server e cliente, mantendo iguais):
+
+```lua
+-- mesmo formato de um reward
+finalReward = { section = 14, index = 13, count = 30, label = "30x Bless (Premio Final)" },
+```
+
+Funcionamento:
+- O estado e guardado na coluna `FinalClaimed` da tabela `LuaDailyReward` (criada/adicionada
+  automaticamente pelo `ensureTable`; reseta por mes junto com a `ClaimedMask`).
+- "Coletou todos" = todos os dias `1..(dias do mes)` que tem reward configurado estao marcados.
+- O resgate segue a regra de seguranca DB->item: marca `FinalClaimed=1` antes de entregar e
+  reverte se a entrega falhar.
+- Packet proprio: `DailyRewardClaimFinal`. O estado enviado ao cliente ganhou o campo `f=` (0/1).
 
 ## Comandos
 
