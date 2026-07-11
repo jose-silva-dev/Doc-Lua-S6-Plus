@@ -39,12 +39,17 @@ Arquivos principais:
 Data\Scripts\GameServer.lua
 Data\Scripts\LuaSystem
 Data\Scripts\Custom\Configs
+Data\Scripts\Custom\System\AutoPost.lua
+Data\Scripts\Custom\System\BuffSeller.lua
 Data\Scripts\Custom\System\ChaosMachine.lua
 Data\Scripts\Custom\System\CharFull.lua
+Data\Scripts\Custom\System\DailyReward.lua
 Data\Scripts\Custom\System\GiftGuardian.lua
 Data\Scripts\Custom\System\JewelBank.lua
+Data\Scripts\Custom\System\LuckyWheel.lua
 Data\Scripts\Custom\System\NpcExchange.lua
 Data\Scripts\Custom\System\ReloadScripts.lua
+Data\Scripts\Custom\System\TopStatues.lua
 ```
 
 ## Client Side
@@ -78,6 +83,7 @@ No server-side, os sistemas com tabelas proprias criam/validam automaticamente a
 - CharFull: `LuaCharFullUse`
 - GiftGuardian: `GiftGuardianCodes`, `GiftGuardianRewards`, `GiftGuardianClaims`
 - DailyReward: `LuaDailyReward`
+- Lucky Wheel: `LuckyWheelVault`
 
 Para suporte manual em instalacoes novas ou DB restaurada, rode somente o update do sistema que sera usado em `MuServer\SQL\Lua`. Atualmente:
 
@@ -85,6 +91,7 @@ Para suporte manual em instalacoes novas ou DB restaurada, rode somente o update
 - `Update1.6.3 - CharFull.sql`
 - `Update1.6.3 - GiftGuardian.sql`
 - `Update1.6.5 - DailyReward.sql`
+- `Update2.2.0 - LuckyWheel.sql`
 
 ## Padrao para sistemas com economia
 

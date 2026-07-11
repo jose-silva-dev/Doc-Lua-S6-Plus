@@ -387,3 +387,46 @@ User.SendCharacterRender(playerIndex, 2001, "Patricia")
 
 Nomes com caracteres fora de `[A-Za-z0-9_]` ou maiores que 10 retornam
 `false`. Tutorial completo em `Tutorials/TopRanking/README.md`.
+
+### Estatua de personagem no mundo (Bot Statue)
+
+```lua
+User.CreateBotStatue(charName, map, x, y, dir)
+User.RemoveBotStatue(slot)
+User.ClearBotStatues()
+```
+
+Spawna um personagem REAL no mapa como "estatua": nome em cima, classe e
+equipamento verdadeiros vindos do banco (online copia da memoria; offline
+busca no DataServer). A estatua nao anda, nao ataca, nao morre e nao aceita
+comandos da Janela de Comando do cliente (holograma). Usos tipicos: podio
+do top ranking, homenagens, decoracao de evento.
+
+- `CreateBotStatue` retorna o slot da estatua (`0..63`) ou `-1` se falhou
+  (nome invalido, mapa/coordenada invalidos, sem vaga). `dir` (direcao
+  `0..7`) e opcional, padrao `0`. Repetir a chamada com o mesmo nome e
+  mesma posicao nao duplica (retorna o slot existente).
+- `RemoveBotStatue(slot)` remove a estatua do slot; retorna `true`/`false`.
+- `ClearBotStatues()` remove todas. Use no inicio de um rebuild para o
+  `/reloadscripts` nao acumular estatua.
+- Limite: 64 estatuas simultaneas. As mesmas regras de nome do
+  `SendCharacterRender` valem aqui (`[A-Za-z0-9_]`, ate 10 caracteres).
+
+No boot do GameServer a conexao com o DataServer termina de subir alguns
+segundos depois dos scripts. Criar estatua de personagem OFFLINE nesse
+intervalo retorna `-1` — refaca com um `Timer.Interval` curto ate completar.
+
+Exemplo:
+
+```lua
+local slot = User.CreateBotStatue("Patricia", 0, 146, 128, 2)
+
+if slot >= 0 then
+	LogPrint("estatua criada no slot " .. slot)
+end
+```
+
+Sistema pronto de exemplo: `Custom\System\TopStatues.lua` +
+`Custom\Configs\TopStatuesConfig.lua` — estatuas do top 1/2/3 do ranking
+com query configuravel, refresh automatico quando o ranking muda e
+auto-cura de boot.
