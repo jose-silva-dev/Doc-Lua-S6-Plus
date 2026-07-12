@@ -83,6 +83,22 @@ SendGlobalPost(player:getName(), "Vendendo itens raros!", 0)
 
 Usado, por exemplo, pelo sistema AutoPost (`/post auto`) para repetir o anuncio no mesmo estilo do `/post` comum.
 
+## GetServerCode
+
+```lua
+GetServerCode()
+```
+
+Retorna o code do servidor atual (o mesmo do ConnectServer). Serve para um script rodar so em um servidor quando ha varios. Ex.: `0` = GameServer, `19` = GameServerCS.
+
+Exemplo:
+
+```lua
+if GetServerCode() == 0 then
+	SendMessageGlobal("Rodando so no servidor principal", 1)
+end
+```
+
 ## OpenFolder
 
 ```lua
@@ -532,6 +548,33 @@ FireworksSend(playerIndex, x, y)
 ```
 
 `FireworksSend` dispara o efeito visual de fogos na posicao informada. Se `x` e `y` forem omitidos, usa a posicao atual do personagem.
+
+## Npc
+
+Cria e controla um NPC em tempo real, util para eventos. O visual vem da classe informada (id de NPC/monstro).
+
+```lua
+Npc.Spawn(class, map, x, y, dir)                       -- cria; retorna o indice do NPC ou -1
+Npc.Remove(index)                                      -- remove o NPC criado
+Npc.OpenShop(playerIndex, shopNumber [, skipConfirm])  -- abre uma loja nativa para o jogador
+Npc.CloseShop(shopNumber)                              -- fecha essa loja em quem estiver com ela aberta
+```
+
+`shopNumber` e o indice da loja no `ShopManager.txt`. Em `Npc.OpenShop`, `skipConfirm = true` pula a caixa "Deseja comprar?" (compra direta) so nessa loja.
+
+Exemplo:
+
+```lua
+local idx = Npc.Spawn(236, 0, 135, 127, 3)   -- Golden Archer em Lorencia
+
+GameServerFunctions.NpcTalk(function(npcIndex, playerIndex)
+	if npcIndex == idx then
+		Npc.OpenShop(playerIndex, 26, true)   -- abre a loja 26 sem confirmacao
+		return true
+	end
+	return false
+end)
+```
 
 ## Party
 

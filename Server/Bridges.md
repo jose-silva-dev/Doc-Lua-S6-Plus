@@ -249,6 +249,8 @@ function(buyerIndex, sellerIndex, slot, itemIndex, level, value)
 end
 ```
 
+> Alem das lojas de jogador, agora tambem dispara na compra em **loja nativa de NPC** (inclusive itens empilhaveis, como joias). Nesse caso `sellerIndex` e o numero da loja (o mesmo de `Npc.OpenShop` / `ShopManager.txt`).
+
 ## Party
 
 ```lua
