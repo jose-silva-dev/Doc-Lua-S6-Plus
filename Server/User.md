@@ -402,13 +402,23 @@ busca no DataServer). A estatua nao anda, nao ataca, nao morre e nao aceita
 comandos da Janela de Comando do cliente (holograma). Usos tipicos: podio
 do top ranking, homenagens, decoracao de evento.
 
+A estatua NAO renderiza montaria, mesmo que o personagem tenha uma equipada
+(desde a 2.2.1). Dentro de safezone o cliente encolhe a montaria pra mini pet
+ou a esconde, e como a estatua nunca sai do lugar ela ficaria congelada com um
+pet minusculo no chao. Asa, set, arma e o resto do equipamento vem normal.
+
 - `CreateBotStatue` retorna o slot da estatua (`0..63`) ou `-1` se falhou
   (nome invalido, mapa/coordenada invalidos, sem vaga). `dir` (direcao
   `0..7`) e opcional, padrao `0`. Repetir a chamada com o mesmo nome e
   mesma posicao nao duplica (retorna o slot existente).
 - `RemoveBotStatue(slot)` remove a estatua do slot; retorna `true`/`false`.
-- `ClearBotStatues()` remove todas. Use no inicio de um rebuild para o
-  `/reloadscripts` nao acumular estatua.
+- `ClearBotStatues()` remove todas. Use UMA vez por carga de script (o
+  `/reloadscripts` zera o estado Lua, mas nao as estatuas), e NAO a cada
+  rebuild: limpar tudo e recriar faz as estatuas sumirem e voltarem na tela
+  dos jogadores toda vez. Para atualizar, mexa so no que mudou --
+  `RemoveBotStatue` da posicao + `CreateBotStatue` do nome novo. Recriar a
+  MESMA estatua na mesma posicao devolve o slot existente sem respawnar, entao
+  posicao que nao mudou nao pisca. O `Custom\System\TopStatues.lua` faz assim.
 - Limite: 64 estatuas simultaneas. As mesmas regras de nome do
   `SendCharacterRender` valem aqui (`[A-Za-z0-9_]`, ate 10 caracteres).
 
