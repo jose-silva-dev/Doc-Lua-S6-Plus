@@ -105,7 +105,7 @@ Em scripts que entregam premio, removem item, fazem deposito/saque ou gravam uso
 
 `Client\Bridges.md` documenta callbacks do Main, como `Render`, `RenderTop`, `Update`, `UpdateKey`, `Client.OnPacket`, `Client.OnHttpResponse` e `ClientHooks`.
 
-`Client\Functions.md` documenta render, imagens, mouse/teclado, janelas, personagem local, packets, HTTP, `ClientAPI` e helpers.
+`Client\Functions.md` documenta render, imagens, sons personalizados, mouse/teclado, janelas, personagem local, packets, HTTP, `ClientAPI` e helpers.
 
 ## Convencao de chamadas
 

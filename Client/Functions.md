@@ -108,6 +108,49 @@ Client.UnloadImage(imageId)
 
 Remove imagem da memoria.
 
+### Client.LoadSound
+
+```lua
+soundId = Client.LoadSound(path [, soundId])
+```
+
+Carrega um efeito sonoro personalizado em formato **WAV PCM**. O caminho e relativo a pasta do cliente.
+
+Retorna o ID carregado ou `-1` em caso de erro. Se o ID for omitido, o cliente escolhe automaticamente um ID livre entre `10000` e `10127`.
+
+Exemplo:
+
+```lua
+local soundId = Client.LoadSound("Data\\Custom\\Sound\\reward.wav")
+
+if soundId ~= -1 then
+    Client.PlaySound(soundId)
+end
+```
+
+Quando o sistema nao precisar mais do som:
+
+```lua
+Client.StopSound(soundId)
+Client.UnloadSound(soundId)
+```
+
+Para escolher o ID manualmente:
+
+```lua
+local soundId = Client.LoadSound("Data\\Custom\\Sound\\reward.wav", 10000)
+```
+
+O ID manual deve estar entre `10000` e `10127`. Se ele ja estiver em uso, descarregue-o antes de reutilizar. Podem existir ate 128 sons personalizados carregados ao mesmo tempo.
+
+### Client.UnloadSound
+
+```lua
+Client.UnloadSound(soundId)
+```
+
+Para e remove da memoria um som personalizado. Os sons tambem sao liberados automaticamente ao recarregar os scripts ou fechar o cliente.
+
 ### Client.PlaySound / StopSound
 
 ```lua
@@ -115,7 +158,9 @@ Client.PlaySound(soundId)
 Client.StopSound(soundId)
 ```
 
-Toca ou para som do cliente.
+Toca ou para um som carregado. Retorna `true` em caso de sucesso e `false` se o ID nao estiver carregado.
+
+Use o ID retornado por `Client.LoadSound`. Estas funcoes podem ser usadas em botoes, alertas, recompensas, eventos, NPCs e outros sistemas Lua.
 
 ## Janela/interface
 
