@@ -75,6 +75,7 @@ player:addMoney(value)
 player:getCoin1()
 player:getCoin2()
 player:getCoin3()
+player:refreshCoins()
 player:setCoin1(value)
 player:setCoin2(value)
 player:setCoin3(value)
@@ -85,6 +86,21 @@ player:addCoin3(value)
 player:getLevelUpPoint()
 player:setLevelUpPoint(value)
 player:addLevelUpPoint(value)
+```
+
+`refreshCoins()` solicita ao DataServer os valores atuais de WCoinC, WCoinP e
+Goblin Point e sincroniza o saldo do jogador conectado. Retorna `true` quando a
+solicitação foi enviada ou `false` quando o jogador/Cash Shop não está disponível
+ou já existe outra operação de Cash Shop em andamento.
+
+Exemplo após uma procedure SQL alterar `CashShopData`:
+
+```lua
+local player = User.new(playerIndex)
+
+if player:refreshCoins() then
+	LogPrint("Atualizacao de moedas solicitada")
+end
 ```
 
 ## Atributos
@@ -337,6 +353,7 @@ player:getInventoryItem(slot)               -- table ou nil
 player:findItem(section, index, [level])    -- slot ou nil
 player:countItem(section, index, [level])   -- int
 player:hasInventorySpace(width, height)     -- bool
+player:hasInventorySpaceForItems(items)     -- bool
 player:takeItem(section, index, [level], [count])  -- int removidos
 player:giveItem(section, index, level, ...)        -- bool
 player:clearInventory([includeEquipment])          -- int removidos
@@ -348,6 +365,29 @@ option1, excellent, setOption, harmony, itemOptionEx}` ou `nil` se slot vazio.
 `giveItem` valida espaco antes de entregar (retorna `false` se nao cabe). Mesmos
 parametros opcionais do `GiveItem` global (level, durability, skill, luck,
 option, excellent, setOption, harmony, itemOptionEx, duration).
+
+`hasInventorySpaceForItems` verifica uma recompensa inteira antes da entrega.
+Cada entrada usa `section`, `index` e `count` (opcional, padrao `1`). A funcao
+simula todos os itens sobre uma unica copia do mapa do inventario, impedindo que
+itens diferentes reutilizem o mesmo espaco durante a validacao.
+
+```lua
+local reward = {
+    { section = 14, index = 13, count = 2 }, -- 2 Bless
+    { section = 14, index = 14, count = 2 }, -- 2 Soul
+}
+
+if not player:hasInventorySpaceForItems(reward) then
+    SendMessage("Inventario sem espaco.", playerIndex, 1)
+    return
+end
+
+for _, item in ipairs(reward) do
+    for n = 1, item.count do
+        player:giveItem(item.section, item.index)
+    end
+end
+```
 
 `duration` espera epoch absoluto (Unix timestamp). Para X dias use `os.time() + X * 86400`:
 
@@ -421,6 +461,10 @@ pet minusculo no chao. Asa, set, arma e o resto do equipamento vem normal.
   posicao que nao mudou nao pisca. O `Custom\System\TopStatues.lua` faz assim.
 - Limite: 64 estatuas simultaneas. As mesmas regras de nome do
   `SendCharacterRender` valem aqui (`[A-Za-z0-9_]`, ate 10 caracteres).
+- Todas as classes nativas do personagem são convertidas internamente pela
+  API, incluindo `DBClass = 50` (Duel Master). O script deve informar apenas
+  o nome do personagem; não é necessário converter `Class`, `ChangeUp` ou
+  escolher um modelo de monstro.
 
 No boot do GameServer a conexao com o DataServer termina de subir alguns
 segundos depois dos scripts. Criar estatua de personagem OFFLINE nesse

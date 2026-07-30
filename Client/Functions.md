@@ -188,6 +188,45 @@ if not Client.IsWindowOpen(ClientAPI.Windows.Inventory) then
 end
 ```
 
+### Render nativo de janelas
+
+```lua
+Client.RenderNativeWindow(x, y, width, height)
+Client.RenderNativeCloseButton(x, y, state)
+Client.RenderNativeArrowButton(x, y, direction, state)
+```
+
+`Client.RenderNativeWindow` monta uma janela no padrão visual do cliente. Os cantos permanecem fixos e as partes centrais se adaptam ao tamanho informado. O tamanho mínimo é `228 x 252`.
+
+Em `Client.RenderNativeArrowButton`, use `direction = -1` para esquerda e `direction = 1` para direita. Em botões, `state = 0` representa o estado normal e `state = 1` o pressionado.
+
+Para sistemas novos, prefira a biblioteca `GenesysUI`, que já centraliza título, botão de fechar, conteúdo, limites da tela e interações:
+
+```lua
+local x, y = GenesysUI.CenterWindow(420, 360)
+local layout = GenesysUI.Window("Minha janela", x, y, 420, 360)
+
+if layout ~= nil then
+	-- desenhe o conteúdo dentro de layout.contentX/layout.contentY
+end
+```
+
+Componentes disponíveis:
+
+```lua
+GenesysUI.RenderNativeCard(x, y, width, height, red, green, blue, alpha)
+GenesysUI.RenderNativeSmallButton(text, x, y, options)
+GenesysUI.RenderNativeScrollBar(trackX, trackY, trackHeight, percent, active)
+GenesysUI.IsCloseHit(layout, mouseX, mouseY)
+GenesysUI.IsHeaderHit(layout, mouseX, mouseY)
+GenesysUI.BlockMouse(layout)
+GenesysUI.BeginDrag(state, layout, mouseX, mouseY)
+GenesysUI.UpdateDrag(state, width, height, mouseX, mouseY)
+GenesysUI.EndDrag(state)
+```
+
+Um exemplo completo e descriptografado fica em `Data\Custom\Lua\Examples\GenesysUIWindowExample.lua`.
+
 ## Mouse e teclado
 
 ```lua
@@ -199,6 +238,7 @@ Client.GetMouseY()
 Client.GetMouseWheel()
 Client.PeekMouseWheel()
 Client.IsMouseLeftButton()
+Client.IsMouseLeftButtonHeld()
 Client.IsMouseRightButton()
 Client.IsMouseLeftButtonPush()
 Client.IsMouseRightButtonPush()
@@ -208,6 +248,8 @@ Client.IsWindowActive()
 ```
 
 `Client.IsKeyboardInputCaptured()` retorna `true` quando o teclado esta focado em chat/editbox nativo ou quando uma janela Lua travou a interface. Use antes de atalhos globais lidos por `Client.IsKeyDown`.
+
+`Client.IsMouseLeftButtonHeld()` lê o estado físico contínuo do botão esquerdo. Use em arraste de janelas, sliders e barras de rolagem. Diferente de `Client.IsMouseLeftButton()`, ele continua retornando `true` depois de `Client.BlockMouse()` proteger a interface; retorna `false` quando o cliente perde o foco.
 
 Exemplo:
 

@@ -194,4 +194,4 @@ ClientHooks.RegisterUpdateKey("MinhaJanela", function(key, down, wasDown)
 end)
 ```
 
-Para janelas moveis, use `Client.GetMouseX()`, `Client.GetMouseY()`, `Client.IsMouseLeftButton()` e `Client.BlockMouse()` dentro de `RegisterUpdateMouse`. Guarde `x` e `y` em uma tabela Lua para manter a posicao.
+Para janelas moveis, prefira `GenesysUI.BeginDrag`, `GenesysUI.UpdateDrag`, `GenesysUI.EndDrag` e `GenesysUI.BlockMouse` dentro de `RegisterUpdateMouse`. Em controles próprios, use `Client.GetMouseX()`, `Client.GetMouseY()` e `Client.IsMouseLeftButtonHeld()`; esse último mantém o estado contínuo mesmo depois de `Client.BlockMouse()` proteger a interface. Guarde `x` e `y` em uma tabela Lua para manter a posição.

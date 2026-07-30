@@ -486,6 +486,10 @@ end
 
 Antes de `GiveItem`, use `InventoryCheckSpaceByItem`. Para multiplos itens, prefira `InventoryCheckSpaceByItems` (valida o lote).
 
+Na API orientada a objeto, `User:hasInventorySpaceForItems(items)` faz a mesma
+validacao de lote usando entradas `{ section, index, count }`. Consulte
+`Server\User.md` para a assinatura e um exemplo completo.
+
 ## Packet server -> client
 
 ```lua

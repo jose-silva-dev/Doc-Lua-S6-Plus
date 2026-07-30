@@ -337,6 +337,42 @@ Parametros:
 - `itemIndex`: item GET_ITEM-style (`group * 512 + index`).
 - `itemLevel`: nivel do item no chao.
 
+## OnUserItemPicked *(2.4.0)*
+
+```lua
+GameServerFunctions.OnUserItemPicked(function(playerIndex, mapItemIndex, itemIndex, itemLevel)
+end)
+```
+
+Disparado somente DEPOIS que o servidor conclui a coleta com sucesso. Serve para
+missoes, conquistas e contadores que nao podem progredir quando o jogador apenas
+tenta pegar um item. O retorno do callback e ignorado.
+
+Tambem e disparado para Zen; nesse caso `itemIndex` e `GET_ITEM(14, 15)`. Se o
+sistema deve contar apenas itens de inventario, ignore esse indice.
+
+Parametros:
+
+- `playerIndex`: index do jogador que recebeu o item ou Zen.
+- `mapItemIndex`: index que o item ocupava em `gMap[].m_Item[]`.
+- `itemIndex`: item GET_ITEM-style (`group * 512 + index`).
+- `itemLevel`: nivel do item coletado.
+
+Exemplo:
+
+```lua
+GameServerFunctions.OnUserItemPicked(function(playerIndex, mapItemIndex, itemIndex, itemLevel)
+    if itemIndex == GET_ITEM(14, 15) then
+        return -- nao contar Zen
+    end
+
+    SendMessage("Voce coletou um item para a missao.", playerIndex, 1)
+end)
+```
+
+Use `OnUserItemPick` quando precisar bloquear a tentativa antes da coleta. Use
+`OnUserItemPicked` quando precisar confirmar que a coleta realmente aconteceu.
+
 ## PlayerLevelUp *(1.6.5)*
 
 ```lua
@@ -353,6 +389,36 @@ Parametros:
 - `newLevel`: nivel atingido (`lpObj->Level` apos o incremento).
 
 Master Level: nao disparado.
+
+## EventComplete *(2.4.0)*
+
+```lua
+GameServerFunctions.EventComplete(function(playerIndex, eventType, eventLevel, success)
+end)
+```
+
+Disparado uma vez para cada jogador que permaneceu no evento ate o
+encerramento oficial.
+
+Parametros:
+
+- `playerIndex`: index do jogador.
+- `eventType`: `1` = Blood Castle; `2` = Devil Square.
+- `eventLevel`: nivel da sala (`BC1..BC8` ou `DS1..DS7`).
+- `success`: no Blood Castle, `1` para vencedor/party vencedora e `0` para os
+  demais participantes; no Devil Square, `1` ao chegar ao encerramento.
+
+Exemplo:
+
+```lua
+GameServerFunctions.EventComplete(function(playerIndex, eventType, eventLevel, success)
+    if eventType == 1 and success == 1 then
+        SendMessage("Voce venceu o Blood Castle " .. eventLevel .. ".", playerIndex, 1)
+    elseif eventType == 2 then
+        SendMessage("Devil Square concluido.", playerIndex, 1)
+    end
+end)
+```
 
 ## OnCheckUserTarget *(1.6.5)*
 
