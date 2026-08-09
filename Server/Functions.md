@@ -286,6 +286,25 @@ local player = User.new(playerIndex)
 player:teleport(0, 125, 125)
 ```
 
+## Estado oculto de viagem
+
+```lua
+player:setTravelHidden(hidden)
+player:isTravelHidden()
+```
+
+Use em viagens cinematograficas para ocultar o personagem e impedir movimento, ataques e skills ate a conclusao. Ao desativar, o personagem volta a aparecer normalmente para os jogadores proximos.
+
+```lua
+local player = User.new(playerIndex)
+player:setTravelHidden(true)
+
+-- Somente depois que o pouso for confirmado:
+player:setTravelHidden(false)
+```
+
+Nao deixe o estado ativo sem um fluxo de cancelamento ou timeout. O controlador oficial incorporado do Airship Travel ja faz essa liberacao automaticamente.
+
 ## Command
 
 ```lua

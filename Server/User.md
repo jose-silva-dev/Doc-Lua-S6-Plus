@@ -63,6 +63,18 @@ player:getType()
 player:setType(value)
 player:setDir(value)
 player:teleport(map, x, y)
+player:setTravelHidden(hidden)
+player:isTravelHidden()
+```
+
+`setTravelHidden(true)` oculta o personagem durante uma viagem cinematografica e bloqueia suas acoes. Use `setTravelHidden(false)` ao concluir ou cancelar. `isTravelHidden()` informa o estado atual.
+
+```lua
+local player = User.new(playerIndex)
+player:setTravelHidden(true)
+
+-- Ao concluir a viagem:
+player:setTravelHidden(false)
 ```
 
 ## Economia e pontos

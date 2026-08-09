@@ -227,6 +227,46 @@ GenesysUI.EndDrag(state)
 
 Um exemplo completo e descriptografado fica em `Data\Custom\Lua\Examples\GenesysUIWindowExample.lua`.
 
+### Cinematica de viagem por dirigivel
+
+```lua
+Client.AirshipSetDock(map, x, y, angle, scale)
+Client.AirshipBeginTakeoff(scale, ascentHeight, lateralDistance, durationMs, cruiseDurationMs)
+Client.AirshipPrepareLanding(scale, ascentHeight, lateralDistance, durationMs, map, dockX, dockY, dockAngle, revealDelayMs)
+Client.AirshipGetPhase()
+Client.AirshipCancel()
+```
+
+`Client.AirshipSetDock` configura o dirigivel local que permanece estacionado no mapa. Somente o jogador que iniciou a viagem ve esse objeto decolar; nos demais clientes ele continua parado.
+
+Estas funcoes controlam somente a parte visual local do dirigivel. A validacao do destino e o teleporte devem continuar no GameServer.
+
+Fases retornadas por `Client.AirshipGetPhase()`:
+
+- `0`: inativo;
+- `1`: decolagem;
+- `2`: aguardando a escolha do destino;
+- `3`: aguardando o teleporte autorizado pelo GameServer;
+- `4`: pouso;
+- `5`: dirigivel estacionado, aguardando o momento de revelar o personagem.
+
+Exemplo resumido:
+
+```lua
+Client.LockPlayerWalk()
+Client.AirshipSetDock(0, 115, 120, 90, 20.00)
+Client.AirshipBeginTakeoff(20.00, 1800, 1200, 3500, 5000)
+
+-- Depois da escolha validada pelo GameServer:
+Client.AirshipPrepareLanding(20.00, 1800, 1200, 3500, 0, 115, 120, 90, 700)
+
+-- Use somente para cancelar a cinematica:
+Client.AirshipCancel()
+Client.UnlockPlayerWalk()
+```
+
+O sistema oficial ja esta incorporado ao `Main.exe` e aos GameServers. O administrador configura as estacoes e os requisitos em `Data\Scripts\Custom\Configs\AirshipTravelConfig.lua`. As funcoes acima permanecem publicas para a criacao de outras cinematicas em scripts proprios.
+
 ## Mouse e teclado
 
 ```lua
@@ -347,6 +387,8 @@ Client.IsEquipmentVisible()
 ```
 
 `Client.GetWindowWidth()` e `Client.GetWindowHeight()` retornam a resolucao fisica configurada. Para posicionar janelas Lua na mesma escala das interfaces nativas, use `Client.GetInterfaceWidth()` e `Client.GetInterfaceHeight()`.
+
+`Client.GetVolume()` retorna o volume mestre atual entre `0` e `10`. `Client.SetVolume(level)` altera em conjunto os efeitos nativos, sons personalizados carregados por Lua e músicas do cliente. O nível `0` silencia o áudio e `10` usa o volume máximo. A configuração também é compartilhada com o slider de volume do Menu do Sistema.
 
 `ClientAPI.GetResolutionInfo()` retorna todos esses valores em uma tabela:
 
