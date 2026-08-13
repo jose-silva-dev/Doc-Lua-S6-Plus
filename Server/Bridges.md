@@ -318,6 +318,19 @@ GameServerFunctions.OnMonsterReload(MyShop.SpawnNpc)
 > uma chamada manual em `MonsterReload()`. Se voce tinha feito isso, mova a linha
 > pro proprio arquivo do sistema usando `GameServerFunctions.OnMonsterReload`.
 
+## OnScriptsReloaded
+
+```lua
+GameServerFunctions.OnScriptsReloaded(function(playerIndex)
+    -- Reenvie ao jogador dados que o cliente mantem em memoria.
+end)
+```
+
+Disparado uma vez para cada personagem conectado depois que `/reloadscripts`
+conclui a recriacao do estado Lua. Use quando uma configuracao alterada precisa
+ser reenviada ao Main sem exigir relogin. Nao e um timer e nao executa durante o
+jogo normal.
+
 ## OnUserItemPick *(1.6.5)*
 
 ```lua

@@ -154,13 +154,45 @@ Para e remove da memoria um som personalizado. Os sons tambem sao liberados auto
 ### Client.PlaySound / StopSound
 
 ```lua
-Client.PlaySound(soundId)
+Client.PlaySound(soundId [, loop])
 Client.StopSound(soundId)
 ```
 
-Toca ou para um som carregado. Retorna `true` em caso de sucesso e `false` se o ID nao estiver carregado.
+Toca ou para um som carregado. Use `loop = true` para repetir continuamente ate chamar `Client.StopSound(soundId)`. Se omitido, o som toca uma vez. Retorna `true` em caso de sucesso e `false` se o ID nao estiver carregado.
+
+Exemplo de som ambiente continuo:
+
+```lua
+local ambientId = Client.LoadSound("Data\\Custom\\Sound\\ambient.wav")
+Client.PlaySound(ambientId, true)
+
+-- Ao encerrar a cena:
+Client.StopSound(ambientId)
+```
 
 Use o ID retornado por `Client.LoadSound`. Estas funcoes podem ser usadas em botoes, alertas, recompensas, eventos, NPCs e outros sistemas Lua.
+
+### Client.BeginSoundFocus / EndSoundFocus
+
+```lua
+Client.BeginSoundFocus(soundId)
+Client.EndSoundFocus()
+```
+
+Cria uma cena de audio exclusiva. Enquanto estiver ativa, a musica e os efeitos normais do jogo ficam silenciados e somente o `soundId` informado pode tocar. As preferencias de volume do jogador nao sao alteradas.
+
+```lua
+local ambientId = Client.LoadSound("Data\\Custom\\Sound\\travel.wav")
+
+Client.BeginSoundFocus(ambientId)
+Client.PlaySound(ambientId, true)
+
+-- Ao encerrar a cena:
+Client.StopSound(ambientId)
+Client.EndSoundFocus()
+```
+
+Sempre finalize o foco ao concluir ou cancelar a cena.
 
 ## Janela/interface
 
@@ -231,7 +263,7 @@ Um exemplo completo e descriptografado fica em `Data\Custom\Lua\Examples\Genesys
 
 ```lua
 Client.AirshipSetDock(map, x, y, angle, scale)
-Client.AirshipBeginTakeoff(scale, ascentHeight, lateralDistance, durationMs, cruiseDurationMs)
+Client.AirshipBeginTakeoff(scale, ascentHeight, lateralDistance, durationMs, cruiseDurationMs, cameraYaw, flightHeading)
 Client.AirshipPrepareLanding(scale, ascentHeight, lateralDistance, durationMs, map, dockX, dockY, dockAngle, revealDelayMs)
 Client.AirshipGetPhase()
 Client.AirshipCancel()
@@ -255,7 +287,7 @@ Exemplo resumido:
 ```lua
 Client.LockPlayerWalk()
 Client.AirshipSetDock(0, 115, 120, 90, 20.00)
-Client.AirshipBeginTakeoff(20.00, 1800, 1200, 3500, 5000)
+Client.AirshipBeginTakeoff(20.00, 1800, 1200, 3500, 5000, 0, 0)
 
 -- Depois da escolha validada pelo GameServer:
 Client.AirshipPrepareLanding(20.00, 1800, 1200, 3500, 0, 115, 120, 90, 700)
@@ -265,7 +297,7 @@ Client.AirshipCancel()
 Client.UnlockPlayerWalk()
 ```
 
-O sistema oficial ja esta incorporado ao `Main.exe` e aos GameServers. O administrador configura as estacoes e os requisitos em `Data\Scripts\Custom\Configs\AirshipTravelConfig.lua`. As funcoes acima permanecem publicas para a criacao de outras cinematicas em scripts proprios.
+O sistema oficial ja esta incorporado ao `Main.exe` e aos GameServers. O administrador configura estacoes, NPCs e requisitos em `Data\Scripts\Custom\Configs\AirshipTravelConfig.lua`; escala, modelo, camera e tempos da cinematica ficam em `Tools\MainInfo\Local\CustomAirship.txt` e sao incorporados ao `av-code45.pak` pelo Encoder. As funcoes acima permanecem publicas para a criacao de outras cinematicas em scripts proprios.
 
 ## Mouse e teclado
 

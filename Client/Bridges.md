@@ -163,6 +163,7 @@ ClientHooks.RegisterUpdateKey(name, callback)
 ClientHooks.RegisterScrollMouse(name, callback)
 ClientHooks.RegisterClick(name, callback)
 ClientHooks.RegisterRightClick(name, callback)
+ClientHooks.RegisterClose(name, callback)
 ClientHooks.UnregisterRender(name)
 ClientHooks.UnregisterUpdateMouse(name)
 ClientHooks.UnregisterUpdate(name)
@@ -170,9 +171,12 @@ ClientHooks.UnregisterUpdateKey(name)
 ClientHooks.UnregisterScrollMouse(name)
 ClientHooks.UnregisterClick(name)
 ClientHooks.UnregisterRightClick(name)
+ClientHooks.UnregisterClose(name)
 ```
 
 Wrapper para registrar handlers sem sobrescrever globais.
+
+Janelas personalizadas devem registrar um callback em `RegisterClose`. Ele e chamado quando o cliente precisa fechar todas as interfaces, como no inicio de uma viagem de dirigivel.
 
 Callbacks de teclado podem retornar `true` para consumir a tecla. Para teclas com acao nativa, chame `Client.ConsumeKey(vk)`. Para `ESC` (`0x1B`), a janela Lua tem prioridade sobre o menu nativo ate a tecla ser solta. Para atalhos globais lidos via `Client.IsKeyDown(vk)`, consulte `Client.IsKeyboardInputCaptured()` antes.
 
@@ -191,6 +195,10 @@ ClientHooks.RegisterUpdateKey("MinhaJanela", function(key, down, wasDown)
 	end
 
 	return false
+end)
+
+ClientHooks.RegisterClose("MinhaJanela", function()
+	MinhaJanela.open = false
 end)
 ```
 
