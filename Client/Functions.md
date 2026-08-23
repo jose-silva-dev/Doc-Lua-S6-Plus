@@ -228,9 +228,34 @@ Client.RenderNativeCloseButton(x, y, state)
 Client.RenderNativeArrowButton(x, y, direction, state)
 ```
 
-`Client.RenderNativeWindow` monta uma janela no padrão visual do cliente. Os cantos permanecem fixos e as partes centrais se adaptam ao tamanho informado. O tamanho mínimo é `228 x 252`.
+`Client.RenderNativeWindow` monta uma janela no padrão visual do cliente. Os cantos permanecem fixos e as partes centrais se adaptam ao tamanho informado. O tamanho mínimo é `150 x 252`.
+
+A partir da 3.2.0 o mínimo de largura caiu de `228` para `150`, o que permite janelas com a mesma largura do inventário (`190`) — útil para janelas que encostam nele. Abaixo de `150` a moldura sai rasgada, porque o topo tem duas pontas fixas de 60 pixels que passariam a se sobrepor.
 
 Em `Client.RenderNativeArrowButton`, use `direction = -1` para esquerda e `direction = 1` para direita. Em botões, `state = 0` representa o estado normal e `state = 1` o pressionado.
+
+### Lista de skills e atalhos (janela de skills)
+
+Disponível a partir da 3.1.0. Estas funções alimentam a janela de skills em grade (`MainInfo.ini` → `SkillWindowNew = 1`) e podem ser usadas por qualquer script do cliente.
+
+```lua
+Client.IsSkillListOpen()                 -- true se a lista de skills está aberta (exige SkillWindowNew = 1)
+Client.CloseSkillList()                  -- fecha a lista de skills
+Client.GetSkillListCount()               -- quantidade de skills utilizáveis (mesmos filtros da fileira nativa)
+Client.GetSkillListSlot(index)           -- slot da skill na posição index (1..count); -1 se inválido
+Client.RenderSkillSlot(slot, x, y)       -- desenha a caixa (32x38) com o ícone da skill; destaca a skill atual
+Client.SelectSkillSlot(slot)             -- seleciona a skill do slot e fecha a lista (igual ao clique nativo)
+Client.GetSkillHotkeyCount()             -- total de slots de atalho de skill (10)
+Client.GetSkillHotkeySlot(index)         -- slot da skill no atalho index (1..count); -1 se vazio
+Client.SetSkillHotkeyBySlot(index, slot) -- põe a skill do slot no atalho index; remove de outro atalho se já existir
+Client.GetSkillHotkeyPage()              -- página da barra de atalhos do HUD: 0 = atalhos 1..5, 1 = atalhos 6..9 e 0
+Client.SetSkillHotkeyPage(page)          -- muda a página da barra do HUD (0 ou 1)
+Client.RenderSkillTooltip(slot, x, y)    -- tooltip nativo da skill do slot (nome, dano real, alcance, mana, AG)
+```
+
+`slot` é o índice interno da skill do personagem (o mesmo devolvido por `Client.GetSkillListSlot`), não o tipo da skill. A barra de atalhos do HUD usa os mesmos dados, então `Client.SetSkillHotkeyBySlot` atualiza as duas ao mesmo tempo.
+
+Em `Client.SetSkillHotkeyBySlot`, `index` é o número do atalho como o jogador vê (teclas `1`..`9` e `0`), que coincide com o índice interno do array. Com `SkillWindowNew = 1`, a página do HUD deixa de ser recalculada a cada frame: ela ainda acompanha a skill atual quando a seleção muda, mas passa a aceitar `Client.SetSkillHotkeyPage` no meio tempo.
 
 Para sistemas novos, prefira a biblioteca `GenesysUI`, que já centraliza título, botão de fechar, conteúdo, limites da tela e interações:
 
@@ -248,6 +273,8 @@ Componentes disponíveis:
 ```lua
 GenesysUI.RenderNativeCard(x, y, width, height, red, green, blue, alpha)
 GenesysUI.RenderNativeSmallButton(text, x, y, options)
+GenesysUI.RenderNativeWideButton(text, x, y, options)
+GenesysUI.RenderNativePanel(x, y, width, height)
 GenesysUI.RenderNativeScrollBar(trackX, trackY, trackHeight, percent, active)
 GenesysUI.IsCloseHit(layout, mouseX, mouseY)
 GenesysUI.IsHeaderHit(layout, mouseX, mouseY)
@@ -257,7 +284,45 @@ GenesysUI.UpdateDrag(state, width, height, mouseX, mouseY)
 GenesysUI.EndDrag(state)
 ```
 
+Disponíveis a partir da 3.2.0:
+
+`GenesysUI.RenderNativePanel` desenha o painel afundado que o jogo usa em volta das listas de item — o contorno do inventário e do baú. O miolo fica vazio de propósito: pinte o fundo que quiser antes de chamar, e a moldura entra por cima. Largura e altura mínimas são `28 x 28`, porque os quatro cantos têm 14 pixels cada.
+
+`GenesysUI.RenderNativeWideButton` é o botão largo do jogo, com os três estados (normal, mouse em cima, apertado). Aceita as mesmas `options` do botão pequeno — `width`, `height`, as cores do texto — mais `enabled = false`, que deixa o texto apagado e ignora o mouse. Devolve uma tabela com `hovered` e `pressed`, ou `nil` se a textura não carregar.
+
+```lua
+GenesysUI.RenderNativePanel(x + 12, y + 195, 165, 209)
+
+local botao = GenesysUI.RenderNativeWideButton("Confirmar", x + 40, y + 165, {
+	width = 110,
+	height = 25,
+	enabled = temEscolha,
+})
+
+if botao ~= nil and botao.hovered and Client.IsMouseLeftButtonPush() then
+	-- clique
+end
+```
+
 Um exemplo completo e descriptografado fica em `Data\Custom\Lua\Examples\GenesysUIWindowExample.lua`.
+
+### A roda do mouse e a câmera
+
+Com o cursor sobre a sua janela, chame `Client.BlockMouse()` para o jogo ignorar o mouse ali. A partir da 3.2.0 ele **também zera a roda**, o que impede a câmera 3D de dar zoom por trás da janela.
+
+Por isso vale a ordem: **leia a roda antes de chamar `Client.BlockMouse()`**. Invertido, a sua lista deixa de rolar.
+
+```lua
+if Client.IsMouseInRect(x, y, width, height) then
+	local wheel = Client.GetMouseWheel()   -- primeiro a roda
+	if wheel ~= 0 then
+		scroll = scroll + (wheel > 0 and -1 or 1)
+	end
+
+	Client.BlockMouse()                    -- depois o bloqueio
+	return true
+end
+```
 
 ### Cinematica de viagem por dirigivel
 
@@ -488,6 +553,20 @@ Client.RenderItemCentered(100, 120, 40, 40, 7181, 0, 0, 0, 0.50)
 ```
 
 Use `RenderItemScaled` para itens em listas compactas. `scale` multiplica a escala nativa.
+
+**`width` e `height` não são o tamanho do item.** Eles multiplicam a posição do modelo, que sai de `posição = (width × pos[X]) + x`, com `pos` vindo do item. Diminuir a largura para encolher um ícone só **desloca** o modelo para a esquerda, até sair da caixa — foi feito para encaixe fino, não para tamanho.
+
+Quem muda o tamanho é o `scale` do `RenderItemScaled`, onde `1` é o tamanho natural:
+
+```lua
+-- ERRADO: quer encolher e acaba movendo o item para fora do lugar
+Client.RenderItem(x, y, 11, 11, 7213, 0, 0, 0)
+
+-- CERTO: mantém a caixa e encolhe de verdade
+Client.RenderItemScaled(x, y, 13, 13, 7213, 0, 0, 0, 0.70)
+```
+
+Isso importa em lista: itens de modelo mais largo, como a Gemstone, enchem a caixa e encostam no texto ao lado. A saída é `scale`, não `width`.
 
 `RenderItemCentered` centraliza o item no bounding box, ignorando `pos[X]/pos[Y]` em `CustomItemPosition`. Mesmos parametros de `RenderItemScaled`. Hit-test usa `(x, y, width, height)` original.
 

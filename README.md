@@ -14,6 +14,10 @@ Documentacao
 |   |-- Bridges.md
 |   `-- Functions.md
 |-- Tutorials
+|   |-- GenesysUI
+|   |   `-- README.md
+|   |-- BattlePass
+|   |   `-- README.md
 |   |-- AutoPost
 |   |   `-- README.md
 |   |-- CharFull
@@ -23,6 +27,10 @@ Documentacao
 |   |-- DailyReward
 |   |   `-- README.md
 |   |-- GiftGuardian
+|   |   `-- README.md
+|   |-- LuckyWheel
+|   |   `-- README.md
+|   |-- AirshipTravel
 |   |   `-- README.md
 |   `-- TopRanking
 |       `-- README.md
@@ -63,7 +71,18 @@ Data\Custom\Lua\ScriptMain.lua
 Data\Custom\Lua\Definitions
 Data\Custom\Lua\Systems
 Data\Custom\Lua\Customs\Configs
+Data\Custom\Lua\Examples
 ```
+
+O controlador oficial do Airship Travel e incorporado ao `Main.exe` e aos
+GameServers. Regras, destinos e custos permanecem abertos em
+`Data\Scripts\Custom\Configs\AirshipTravelConfig.lua`; aparencia e camera ficam
+em `Tools\MainInfo\Local\CustomAirship.txt`, incorporadas ao PAK pelo Encoder.
+As funcoes publicas `Client.Airship*` continuam disponiveis para scripts proprios.
+
+As interfaces `GenesysUI` do Buff Seller, Lucky Wheel, Gift Guardian, Chaos
+Genesis, Daily Reward e Battle Pass fecham ao clicar fora da moldura. Esse
+clique e consumido para nao mover o personagem nem acionar o cenario por tras.
 
 `Server\Bridges.md` documenta eventos como `NpcTalk`, `MonsterDie`, `OnUserDamage` e `ClientPacket`.
 
@@ -84,6 +103,7 @@ No server-side, os sistemas com tabelas proprias criam/validam automaticamente a
 - GiftGuardian: `GiftGuardianCodes`, `GiftGuardianRewards`, `GiftGuardianClaims`
 - DailyReward: `LuaDailyReward`
 - Lucky Wheel: `LuckyWheelVault`
+- Battle Pass: `LuaBattlePass`
 
 Para suporte manual em instalacoes novas ou DB restaurada, rode somente o update do sistema que sera usado em `MuServer\SQL\Lua`. Atualmente:
 
@@ -92,6 +112,7 @@ Para suporte manual em instalacoes novas ou DB restaurada, rode somente o update
 - `Update1.6.3 - GiftGuardian.sql`
 - `Update1.6.5 - DailyReward.sql`
 - `Update2.2.0 - LuckyWheel.sql`
+- `Update2.4.0 - BattlePass.sql`
 
 ## Padrao para sistemas com economia
 
@@ -125,9 +146,13 @@ Os exemplos ficam em:
 
 ```text
 Data\Scripts\Examples
+Data\Custom\Lua\Examples
 ```
 
-Essa pasta nao e carregada automaticamente. Para testar um exemplo, copie o arquivo desejado para `Data\Scripts\Custom\System` e use `/reloadscripts` ou reinicie o GameServer.
+Essas pastas nao sao carregadas automaticamente.
+
+- Server-side: copie o exemplo para `Data\Scripts\Custom\System` e use `/reloadscripts` ou reinicie o GameServer.
+- Client-side: copie o exemplo para `Data\Custom\Lua\Systems` e reinicie o Main. Se `ClientLuaReload = 1`, um personagem GM/Admin tambem pode usar `F6`.
 
 ## Tutoriais
 
@@ -141,6 +166,8 @@ Cada sistema possui sua propria pasta. Exemplo:
 
 ```text
 Tutorials\GiftGuardian\README.md
+Tutorials\GenesysUI\README.md
+Tutorials\BattlePass\README.md
 Tutorials\ChaosMachine\README.md
 Tutorials\CharFull\README.md
 Tutorials\AutoPost\README.md
