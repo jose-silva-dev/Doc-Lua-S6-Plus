@@ -26,9 +26,13 @@ Documentacao
 |   |   `-- README.md
 |   |-- DailyReward
 |   |   `-- README.md
+|   |-- ExperienceBuff
+|   |   `-- README.md
 |   |-- GiftGuardian
 |   |   `-- README.md
 |   |-- LuckyWheel
+|   |   `-- README.md
+|   |-- NPCHoras
 |   |   `-- README.md
 |   |-- AirshipTravel
 |   |   `-- README.md
@@ -40,6 +44,13 @@ Documentacao
 ## Server Side
 
 Scripts executados pelo GameServer.
+
+O [tutorial do NPCHoras](Tutorials/NPCHoras/README.md) explica como escolher
+os ServerCodes onde o NPC de horas aparece, sem desligar a contagem nos demais.
+
+O [tutorial de bonus de EXP](Tutorials/ExperienceBuff/README.md) explica a correcao
+de duracao de `User:addBuff` na 3.5.0 e como aplicar Seal por 8 horas,
+acumulando com Talisman conforme as regras nativas.
 
 Arquivos principais:
 
@@ -55,6 +66,7 @@ Data\Scripts\Custom\System\DailyReward.lua
 Data\Scripts\Custom\System\GiftGuardian.lua
 Data\Scripts\Custom\System\JewelBank.lua
 Data\Scripts\Custom\System\LuckyWheel.lua
+Data\Scripts\Custom\System\NPCHoras.lua
 Data\Scripts\Custom\System\NpcExchange.lua
 Data\Scripts\Custom\System\ReloadScripts.lua
 Data\Scripts\Custom\System\TopStatues.lua
@@ -73,6 +85,8 @@ Data\Custom\Lua\Systems
 Data\Custom\Lua\Customs\Configs
 Data\Custom\Lua\Examples
 ```
+
+O [pagamento da lojinha pelo Banco de Joias](Tutorials/JewelBankPayment/README.md) documenta a chave `JewelBankPayment`, a migracao SQL e os testes dos modos `0` e `1`.
 
 O controlador oficial do Airship Travel e incorporado ao `Main.exe` e aos
 GameServers. Regras, destinos e custos permanecem abertos em
@@ -151,10 +165,14 @@ Data\Custom\Lua\Examples
 
 Essas pastas nao sao carregadas automaticamente.
 
-- Server-side: copie o exemplo para `Data\Scripts\Custom\System` e use `/reloadscripts` ou reinicie o GameServer.
+- Server-side: copie o exemplo para `Data\Scripts\Custom\System` e use `/reload scripts` ou reinicie o GameServer.
 - Client-side: copie o exemplo para `Data\Custom\Lua\Systems` e reinicie o Main. Se `ClientLuaReload = 1`, um personagem GM/Admin tambem pode usar `F6`.
 
 ## Tutoriais
+
+- [Marketplace — configuração e uso](Tutorials/MarketplacePreview/README.md).
+
+- [InventoryOptions — leitura e teste de skill, Luck e adicional (3.4.0)](Tutorials/InventoryOptions/README.md).
 
 Guias passo a passo ficam em:
 

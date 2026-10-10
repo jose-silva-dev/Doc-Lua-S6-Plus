@@ -73,7 +73,7 @@ SendMessageGlobal("Evento iniciado!", 1)
 SendGlobalPost(nome, mensagem [, tipo])
 ```
 
-Publica um **post global** identico ao comando `/post` nativo (a linha `[POST]` que aparece no chat de todos os jogadores). `nome` e o autor exibido; `tipo` (opcional, padrao `0`) seleciona o estilo do post — deixe `0` para o mesmo estilo do `/post` do seu servidor.
+Publica um **post global** identico ao comando `/post` nativo (a linha `[POST]` que aparece no chat de todos os jogadores). `nome` e o autor exibido e aceita ate 31 caracteres, permitindo etiquetas de sistemas como `Lucky Wheel`; nomes reais de personagens continuam obedecendo ao limite normal do jogo. `tipo` (opcional, padrao `0`) seleciona o estilo do post — deixe `0` para o mesmo estilo do `/post` do seu servidor.
 
 Exemplo:
 
@@ -248,6 +248,37 @@ local player = User.new(playerIndex)
 local msg = string.format("Level %d Map %d %d/%d", player:getLevel(), player:getMap(), player:getX(), player:getY())
 SendMessage(msg, playerIndex, 1)
 ```
+
+## Espera de transação do Marketplace (3.4.0)
+
+`player:isMarketplaceBusy()` retorna boolean: true enquanto **esse personagem**
+aguarda confirmação de uma operação nativa do Marketplace. Outros personagens
+continuam disponíveis. Consultas de inventário e atributos permanecem permitidas.
+
+Durante essa espera, métodos de alteração de User (itens, moedas, atributos,
+buffs e teleporte) levantam erro Lua `marketplace_busy` antes de alterar o estado.
+O mesmo vale para GiveItem, TakeItem, TakeInventorySlot e CreateItemMap, incluindo
+ItemSerialCreate/ItemSerialCreatePeriodic. Não são executados automaticamente depois.
+
+Verifique antes de debitar, consumir ou marcar uma entrega como concluída:
+
+```lua
+local player = User.new(playerIndex)
+if not player:isPlaying() then return end
+if player:isMarketplaceBusy() then
+    return -- deixe a recompensa pendente e tente de novo no próximo ciclo
+end
+-- Continue aqui seu fluxo de validação e entrega.
+```
+
+Em loops com vários jogadores, ignore somente o personagem ocupado. Uma rotina
+adiada deve validar novamente conta/personagem/sessão: o índice pode ser reutilizado
+após desconexão. Tratar o erro via pcall não torna uma sequência de chamadas atômica.
+
+Este método não reserva itens nem fornece uma transação SQL ao script. SQL arbitrário
+não é bloqueado por esse método; não grave inventário/saldos do marketplace fora das
+procedures coordenadas. A API Lua pública de anunciar/comprar/retirar ainda está em
+implementação futura. O getter de item e GiveItem não fazem transferência completa.
 
 ## User - escrita comum
 
@@ -505,6 +536,21 @@ end
 
 Antes de `GiveItem`, use `InventoryCheckSpaceByItem`. Para multiplos itens, prefira `InventoryCheckSpaceByItems` (valida o lote).
 
+**`duration` nao e quanto o item dura: e QUANDO ele expira.** O valor e um horario absoluto (segundos desde 1970, o mesmo de `os.time()`), e nao um prazo. Passando `604800` direto, o item nasce vencido em janeiro de 1970 — ele entra no inventario e some na hora seguinte, sem erro nenhum. Some `os.time()` antes:
+
+```lua
+-- ERRADO: item some assim que entra no inventario
+GiveItem(playerIndex, 5, 8, 15, 255, 1, 1, 7, 63, 0, 0, 0, 604800)
+
+-- CERTO: 7 dias a partir de agora
+local expira = os.time() + 604800
+GiveItem(playerIndex, 5, 8, 15, 255, 1, 1, 7, 63, 0, 0, 0, expira)
+```
+
+Vale igual para `CreateItemMap`, `ItemSerialCreate` e `ItemSerialCreatePeriodic`. Use `0` para item sem prazo.
+
+Cuidado ao montar a tela: o `duration` de `Client.ShowItemTooltipFull`, no cliente, e o **oposto** — la e o prazo em segundos a partir de agora. O mesmo `604800` do seu config serve direto para o tooltip, mas precisa de `os.time() +` para a entrega.
+
 Na API orientada a objeto, `User:hasInventorySpaceForItems(items)` faz a mesma
 validacao de lote usando entradas `{ section, index, count }`. Consulte
 `Server\User.md` para a assinatura e um exemplo completo.
@@ -564,11 +610,18 @@ SetMapMonster(map, monsterClass, x, y, dir)
 CloseChar(playerIndex)
 Disconnect(playerIndex)
 RequestReloadScripts()
+RequestReloadMonsters()
 GetUserIndexByName(name)
 GetUserByName(name)
 SendLuaPacket(playerIndex, packetName, data)
 FireworksSend(playerIndex, x, y)
 ```
+
+`RequestReloadScripts()` solicita a recarga de arquivos e configuracoes Lua;
+`RequestReloadMonsters()` solicita a reconstrucao dos monstros e NPCs do mapa,
+seguida de `GameServerFunctions.OnMonsterReload` para os scripts ja carregados.
+Os dois pedidos sao executados depois do callback de chat, nao dentro dele.
+O comando de GM no jogo e `/reload scripts` ou `/reload monster`.
 
 `FireworksSend` dispara o efeito visual de fogos na posicao informada. Se `x` e `y` forem omitidos, usa a posicao atual do personagem.
 
@@ -579,11 +632,21 @@ Cria e controla um NPC em tempo real, util para eventos. O visual vem da classe 
 ```lua
 Npc.Spawn(class, map, x, y, dir)                       -- cria; retorna o indice do NPC ou -1
 Npc.Remove(index)                                      -- remove o NPC criado
+Npc.SpawnTagged(tag, class, map, x, y, dir)             -- cria ou atualiza o NPC identificado pela tag
+Npc.RemoveTagged(tag)                                  -- remove apenas o NPC dessa tag
 Npc.OpenShop(playerIndex, shopNumber [, skipConfirm])  -- abre uma loja nativa para o jogador
 Npc.CloseShop(shopNumber)                              -- fecha essa loja em quem estiver com ela aberta
 ```
 
 `shopNumber` e o indice da loja no `ShopManager.txt`. Em `Npc.OpenShop`, `skipConfirm = true` pula a caixa "Deseja comprar?" (compra direta) so nessa loja.
+
+Use uma `tag` exclusiva e estavel (ate 64 bytes) para NPCs configuraveis que precisam
+acompanhar `Reload Script All`. `Npc.SpawnTagged` conserva o NPC se classe, mapa,
+coordenadas e direcao nao mudaram; quando mudam, cria o substituto e remove somente
+o NPC anterior da mesma tag. Se o novo spawn falhar, o anterior permanece. Antes de
+recriar o estado Lua, o reload remove todos os NPCs com tag; os scripts os criam
+novamente ao carregar. NPCs fixos do `MonsterSetBase` e os criados por `Npc.Spawn`
+nao entram nesse registro. Para desativar um sistema, chame `Npc.RemoveTagged(tag)`.
 
 Exemplo:
 

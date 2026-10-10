@@ -305,8 +305,9 @@ GameServerFunctions.OnMonsterReload(function()
 end)
 ```
 
-Disparado quando os monstros do mapa sao recarregados (inicializacao do servidor
-ou apos `RequestReloadScripts()`). Cada chamada adiciona um handler; todos os
+Disparado quando os monstros do mapa sao recarregados (inicializacao do servidor,
+menu Reload Monster ou `/reload monster`). `/reload scripts` recria o estado Lua:
+o script deve chamar seu spawn durante a propria carga. Cada chamada adiciona um handler; todos os
 registrados sao executados em ordem.
 
 ```lua
@@ -326,7 +327,7 @@ GameServerFunctions.OnScriptsReloaded(function(playerIndex)
 end)
 ```
 
-Disparado uma vez para cada personagem conectado depois que `/reloadscripts`
+Disparado uma vez para cada personagem conectado depois que `/reload scripts`
 conclui a recriacao do estado Lua. Use quando uma configuracao alterada precisa
 ser reenviada ao Main sem exigir relogin. Nao e um timer e nao executa durante o
 jogo normal.

@@ -39,6 +39,7 @@ Client.RenderColorBox(x, y, width, height, red, green, blue, alpha)
 ```
 
 Define estado de texto para renderizacoes seguintes.
+Em `SetFontType`, use `0` normal, `1` negrito, `2` grande, `3` fixo ou `4` titulo da interface configurado em `UI\\CustomFont.txt`. Para aplicar o tipo escolhido, chame `RenderText` com cores `-1`, como no exemplo. O tipo `4` e exclusivo de texto desenhado por `RenderText`; os estilos de nome sobre personagem mantem suas opcoes proprias.
 
 Exemplo:
 
@@ -84,7 +85,7 @@ Data\Custom\Interface\HP\hp.ozt
 Client.RenderImage(imageId, x, y, width, height)
 ```
 
-Renderiza imagem carregada.
+Renderiza imagem carregada. A chamada estabelece internamente cor branca e transparência alpha; portanto, a imagem não herda blend/cor deixados por tooltips ou por outro callback desenhado antes dela.
 
 Exemplo:
 
@@ -98,7 +99,7 @@ Client.RenderImage(92010, 120, 90, 300, 120)
 Client.RenderImageUV(imageId, x, y, width, height, u, v, uWidth, vHeight)
 ```
 
-Renderiza parte de uma imagem.
+Renderiza parte de uma imagem com o mesmo isolamento de cor/transparência de `Client.RenderImage`.
 
 ### Client.UnloadImage
 
@@ -181,6 +182,8 @@ Client.EndSoundFocus()
 
 Cria uma cena de audio exclusiva. Enquanto estiver ativa, a musica e os efeitos normais do jogo ficam silenciados e somente o `soundId` informado pode tocar. As preferencias de volume do jogador nao sao alteradas.
 
+O foco tambem funciona quando a musica do cliente esta desativada ou quando nenhuma faixa esta tocando. Nesses casos nao existe stream de musica para interromper, mas o som exclusivo informado continua sendo controlado normalmente.
+
 ```lua
 local ambientId = Client.LoadSound("Data\\Custom\\Sound\\travel.wav")
 
@@ -237,6 +240,8 @@ Em `Client.RenderNativeArrowButton`, use `direction = -1` para esquerda e `direc
 ### Lista de skills e atalhos (janela de skills)
 
 Disponível a partir da 3.1.0. Estas funções alimentam a janela de skills em grade (`MainInfo.ini` → `SkillWindowNew = 1`) e podem ser usadas por qualquer script do cliente.
+
+Na implementação fornecida, o ícone de Skills funciona como alternância: um clique abre a janela e o clique seguinte fecha. Clicar fora, no X ou pressionar Escape também fecha a lista.
 
 ```lua
 Client.IsSkillListOpen()                 -- true se a lista de skills está aberta (exige SkillWindowNew = 1)
@@ -477,6 +482,9 @@ Client.GetMonsterName(monsterId)
 Client.GetPartyCount()
 Client.GetPing()
 Client.GetCamera3D()
+ClientAPI.IsLuckyWheelModernUI()
+ClientAPI.IsDailyRewardModernUI()
+Client.GetUIThemeColorHex(key)
 Client.SetGlowVisible(enabled)
 Client.IsGlowVisible()
 Client.SetEquipmentVisible(enabled)
@@ -484,6 +492,12 @@ Client.IsEquipmentVisible()
 ```
 
 `Client.GetWindowWidth()` e `Client.GetWindowHeight()` retornam a resolucao fisica configurada. Para posicionar janelas Lua na mesma escala das interfaces nativas, use `Client.GetInterfaceWidth()` e `Client.GetInterfaceHeight()`.
+
+`ClientAPI.IsLuckyWheelModernUI()` retorna `true` quando `[LuckyWheel] panels=1` em `UI\ui.ini` foi incorporado ao `config.bin` pelo Encoder; caso contrario, retorna `false`. Disponivel a partir da 3.5.0; scripts que tambem devem funcionar em Main antigo precisam verificar se a funcao existe antes de chama-la.
+
+`ClientAPI.IsDailyRewardModernUI()` consulta `[DailyReward] panels=1` no mesmo `UI\ui.ini` do Encoder. `false` (ou função ausente em Main antigo) mantém o calendário Lua tradicional. A revisão moderna em teste usa um documento RmlUi de `UI.bin` e a ponte interna `Client.DailyRewardRmlRender`, `DailyRewardRmlUpdateInput`, `DailyRewardRmlHoveredReward` e `DailyRewardRmlClose`; o Lua continua responsável por validar as ações antes de enviar ao servidor. Os poços 3D do RmlUi passam pelo mesmo renderizador e pela mesma `Local\System\MarketplaceItemPosition.txt` do Marketplace. Se o documento não estiver disponível, o Lua mantém a janela tradicional.
+
+`Client.GetUIThemeColorHex(key)` devolve `#RRGGBB` ou `#RRGGBBAA` para uma chave conhecida de `[Theme]`, usando a mesma validação e os mesmos valores do RmlUi; chave desconhecida devolve texto vazio. Exemplo: `Client.GetUIThemeColorHex("accent")`. `GenesysUI.ThemeColor(key)` converte isso em `{r, g, b, a}`, `GenesysUI.RenderThemeBox` desenha uma cor da paleta e `GenesysUI.RenderThemeGradient` usa `gradientstart` e `gradientend`. Essas funções atendem às janelas Lua modernas; os desenhos tradicionais continuam como antes. Edite `MuServer\Tools\MainInfo\UI\ui.ini`, gere o `config.bin` pelo Encoder e reinicie o Main. Repetir as duas cores do degradê cria um preenchimento uniforme.
 
 `Client.GetVolume()` retorna o volume mestre atual entre `0` e `10`. `Client.SetVolume(level)` altera em conjunto os efeitos nativos, sons personalizados carregados por Lua e músicas do cliente. O nível `0` silencia o áudio e `10` usa o volume máximo. A configuração também é compartilhada com o slider de volume do Menu do Sistema.
 
@@ -540,6 +554,7 @@ end
 Client.RenderItem(x, y, width, height, itemIndex, level, option1, extOption)
 Client.RenderItemScaled(x, y, width, height, itemIndex, level, option1, extOption, scale)
 Client.RenderItemCentered(x, y, width, height, itemIndex, level, option1, extOption, scale)
+Client.RenderMarketplaceItem(x, y, width, height, itemIndex, level, excellent, ancient)
 ```
 
 Desenha preview 3D de item.
@@ -568,7 +583,45 @@ Client.RenderItemScaled(x, y, 13, 13, 7213, 0, 0, 0, 0.70)
 
 Isso importa em lista: itens de modelo mais largo, como a Gemstone, enchem a caixa e encostam no texto ao lado. A saída é `scale`, não `width`.
 
+**`level` aqui é o BYTE do nível, e não o nível.** Por dentro o desenho faz `(level >> 3) & 15`, e no mesmo byte moram a skill, a sorte e a opção. Passar `13` desenha um `+1`. Multiplique por 8 e some os bits:
+
+```lua
+local byte = level * 8
+if skill ~= 0 then byte = byte + 128 end
+if luck  ~= 0 then byte = byte + 4   end
+byte = byte + (option % 4)
+
+Client.RenderItemScaled(x, y, 40, 40, itemIndex, byte, option, excellent, 1.0)
+```
+
+Repare que `Client.ShowItemTooltipFull` faz o **contrário**: recebe o nível puro (0 a 15) e monta o byte sozinho. Desenhando e mostrando a descrição do mesmo item, os dois recebem valores diferentes — se a descrição disser `+13` e o desenho parecer outro nível, é este byte.
+
 `RenderItemCentered` centraliza o item no bounding box, ignorando `pos[X]/pos[Y]` em `CustomItemPosition`. Mesmos parametros de `RenderItemScaled`. Hit-test usa `(x, y, width, height)` original.
+
+Para quadrados de itens na nova UI, use `RenderMarketplaceItem`. Ele chama o mesmo
+renderizador dos poços do Marketplace: escala e âncora por categoria, compensação
+do posicionamento nativo, recorte no quadrado e ajustes individuais de escala,
+deslocamento e rotações de `Local\System\MarketplaceItemPosition.txt` (empacotado no
+PAK). A mesma calibração vale no catálogo, nos detalhes, na Lucky Wheel e em outros
+scripts que chamarem esta função. Passe o retângulo completo do quadrado; a escala
+e os deslocamentos são proporcionais ao tamanho. Não é necessário copiar os ajustes
+por item para cada script. `level` é o byte compactado descrito acima.
+
+```lua
+Client.RenderMarketplaceItem(x, y, 54, 54, itemIndex, byte, excellent, ancient)
+```
+
+O arquivo de calibração continua sendo salvo no editor do Marketplace. Após salvar,
+copie-o da raiz do cliente para `Tools\MainInfo\Local\System`, gere o PAK no Encoder
+e distribua-o; a prévia local do editor é aplicada imediatamente. Sem entrada para
+um item, valem as regras padrão do próprio Marketplace.
+
+O que `RenderItemCentered` centraliza e o **ponto de ancora** do item, e nao a massa visivel do modelo. Cada modelo e desenhado a partir de um ponto proprio — um cajado nasce no cabo, uma joia na base —, entao itens diferentes ainda parecem tortos dentro da mesma caixa. Em codigo legado que usa essa funcao, o acabamento exige um deslocamento por item. Para sistemas novos com quadrados, prefira `RenderMarketplaceItem` e a calibracao compartilhada descrita acima.
+
+```lua
+-- offsetX/offsetY guardados no seu config, um par por item
+Client.RenderItemCentered(x + offsetX, y + offsetY, 40, 40, itemIndex, byte, option, excellent, 1.0)
+```
 
 `ShowItemTooltipFull` representa item composto no servidor:
 

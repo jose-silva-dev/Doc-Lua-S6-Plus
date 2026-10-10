@@ -26,7 +26,39 @@ player:isPlayer()
 player:isPlaying()
 player:isVip()
 player:isGM()
+player:isMarketplaceBusy()
 ```
+
+## Espera de transação do Marketplace (3.4.0)
+
+`player:isMarketplaceBusy()` retorna boolean: true enquanto **esse personagem**
+aguarda confirmação de uma operação nativa do Marketplace. Outros personagens
+continuam disponíveis. Consultas de inventário e atributos permanecem permitidas.
+
+Durante essa espera, métodos de alteração de User (itens, moedas, atributos,
+buffs e teleporte) levantam erro Lua `marketplace_busy` antes de alterar o estado.
+O mesmo vale para GiveItem, TakeItem, TakeInventorySlot e CreateItemMap, incluindo
+ItemSerialCreate/ItemSerialCreatePeriodic. Não são executados automaticamente depois.
+
+Verifique antes de debitar, consumir ou marcar uma entrega como concluída:
+
+```lua
+local player = User.new(playerIndex)
+if not player:isPlaying() then return end
+if player:isMarketplaceBusy() then
+    return -- deixe a recompensa pendente e tente de novo no próximo ciclo
+end
+-- Continue aqui seu fluxo de validação e entrega.
+```
+
+Em loops com vários jogadores, ignore somente o personagem ocupado. Uma rotina
+adiada deve validar novamente conta/personagem/sessão: o índice pode ser reutilizado
+após desconexão. Tratar o erro via pcall não torna uma sequência de chamadas atômica.
+
+Este método não reserva itens nem fornece uma transação SQL ao script. SQL arbitrário
+não é bloqueado por esse método; não grave inventário/saldos do marketplace fora das
+procedures coordenadas. A API Lua pública de anunciar/comprar/retirar ainda está em
+implementação futura. O getter de item e GiveItem não fazem transferência completa.
 
 ## Identificacao
 
@@ -348,6 +380,44 @@ player:clearDebuffs([count])
 Manipula efeitos do `EffectManager`. `duration` em segundos (omita para
 usar o tempo do config). `v1..v4` variam por efeito.
 
+`addBuff` retorna `true` quando aplica o efeito e `false` quando nao consegue.
+Duracao omitida ou `0` mantem o tempo configurado em `MuServer/Data/Effect.txt`
+quando a coluna `Count` possui um valor fixo. Duracao
+informada deve ser um numero inteiro nao negativo; valores fracionarios,
+negativos, nao finitos ou fora do limite suportado retornam `false` sem substituir
+o efeito atual. Indices de efeito inexistentes tambem retornam `false`.
+Os valores `v1..v4` so sobrescrevem campos configurados como `*` no `Effect.txt`;
+valores fixos da configuracao continuam prevalecendo.
+
+A partir da correcao da **3.5.0**, uma duracao positiva em efeitos `Type 2`
+tambem recebe **segundos**: a API converte a duracao para o horario de expiracao
+exigido pelo servidor. Antes, essa duracao era interpretada como uma data ja vencida.
+Nao passe `os.time() + duracao`. Esses efeitos continuam contando enquanto
+o personagem esta offline; efeitos `Type 0/1` mantem sua contagem nativa.
+O prazo Type 2 deve caber no timestamp inteiro com sinal aceito pelo servidor.
+
+```lua
+local applied = player:addBuff(193, 28800) -- Seal: +100% EXP normal por 8 horas
+if applied then
+    -- Somente agora consumir o item que concedeu o bonus.
+end
+```
+
+Na configuracao padrao, `193` aumenta EXP normal, `194` aumenta Master EXP
+e `191` aumenta ambas. Seal `193` e Talisman `191` coexistem (grupos 60 e 115);
+efeitos do mesmo grupo substituem-se conforme a regra nativa, nao se somam.
+Os percentuais de EXP desses efeitos sao aditivos: base 100% + Seal 100% +
+Talisman 100% = 300% nesse componente do calculo. Outros multiplicadores e
+regras de nivel/mapa/party continuam valendo.
+
+Veja [Bonus de EXP com Seal e Talisman](../Tutorials/ExperienceBuff/README.md)
+para aplicar o efeito em um consumivel, preservar buffs existentes e conferir
+a duracao. Requer GameServer e GameServerCS com a correcao da 3.5.0;
+atualizar somente os scripts nao corrige o tratamento de `Type 2`.
+
+Essa alteracao usa efeitos nativos. Nao adiciona `getExperience`,
+`setExperience` ou `addExperience` ao objeto `User`.
+
 Exemplo:
 
 ```lua
@@ -365,6 +435,7 @@ player:getInventoryItem(slot)               -- table ou nil
 player:findItem(section, index, [level])    -- slot ou nil
 player:countItem(section, index, [level])   -- int
 player:hasInventorySpace(width, height)     -- bool
+player:getItemMaxStack(section, index, [level]) -- int; 0 sem stack
 player:hasInventorySpaceForItems(items)     -- bool
 player:takeItem(section, index, [level], [count])  -- int removidos
 player:giveItem(section, index, level, ...)        -- bool
@@ -372,16 +443,58 @@ player:clearInventory([includeEquipment])          -- int removidos
 ```
 
 `getInventoryItem` retorna `{section, index, type, level, durability, serial,
-option1, excellent, setOption, harmony, itemOptionEx}` ou `nil` se slot vazio.
+option1, skill, luck, option, excellent, setOption, harmony, itemOptionEx}`
+ou `nil` se o slot estiver vazio ou invalido.
+
+A partir da **3.4.0**, `skill`, `luck` e `option` usam os mesmos formatos
+aceitos por `GiveItem` e `player:giveItem`:
+
+| Campo | Valor |
+| --- | --- |
+| `skill` | 0 = sem skill; 1 = com skill |
+| `luck` | 0 = sem Luck; 1 = com Luck |
+| `option` | Nivel do adicional, de 0 a 7; nao e o valor exibido no tooltip (por exemplo, +28) |
+| `option1` | Alias legado de `skill`, preservado para scripts existentes |
+
+```lua
+local player = User.new(playerIndex)
+local item = player:getInventoryItem(12) -- primeira celula da mochila
+if item then
+    LogPrint(string.format("skill=%d luck=%d option=%d",
+        item.skill, item.luck, item.option))
+end
+```
+
+Em builds anteriores a 3.4.0 os tres campos novos nao existem. Atualize GS/GSCS;
+reload de scripts sozinho nao adiciona campos da API nativa. Nao substitua
+campos ausentes por zero ao salvar um item, pois isso perderia os atributos.
+
+**Marketplace:** esses campos permitem ler os atributos basicos, mas o getter
+nao retorna sockets, bonus de socket ou vencimento. `GiveItem` cria um novo
+item com novo serial e sockets vazios; nao e uma API de transferencia do item
+original. A retirada, persistencia e entrega de um Marketplace exigem um fluxo
+proprio para evitar perda ou duplicacao em caso de falha.
+
+Teste de leitura e comparacao: [InventoryOptions](../Tutorials/InventoryOptions/README.md).
 
 `giveItem` valida espaco antes de entregar (retorna `false` se nao cabe). Mesmos
 parametros opcionais do `GiveItem` global (level, durability, skill, luck,
-option, excellent, setOption, harmony, itemOptionEx, duration).
+option, excellent, setOption, harmony, itemOptionEx, duration). Um ultimo
+parametro booleano opcional, `stackReward`, ativa a fusao com stacks existentes
+para item simples configurado em `ItemStack.txt`; nesse caso, `durability` e a
+quantidade da stack (de 1 ate o limite). Os demais usos preservam a criacao
+individual. `getItemMaxStack` le o limite configurado para item e nivel.
 
 `hasInventorySpaceForItems` verifica uma recompensa inteira antes da entrega.
-Cada entrada usa `section`, `index` e `count` (opcional, padrao `1`). A funcao
+Cada entrada usa `section`, `index` e `count` (opcional, padrao `1`); `level`
+e `stack = true` permitem considerar a capacidade livre de stacks existentes
+e reservar apenas os novos slots necessarios. A funcao
 simula todos os itens sobre uma unica copia do mapa do inventario, impedindo que
 itens diferentes reutilizem o mesmo espaco durante a validacao.
+
+Se um item nao existir em `Data\Item\Item.txt`, a funcao retorna
+`false, "item_missing", section, index`. Uma entrada mal formada retorna
+`false, "invalid_reward"`. Falta real de espaco retorna apenas `false`.
 
 ```lua
 local reward = {
@@ -465,7 +578,7 @@ pet minusculo no chao. Asa, set, arma e o resto do equipamento vem normal.
   mesma posicao nao duplica (retorna o slot existente).
 - `RemoveBotStatue(slot)` remove a estatua do slot; retorna `true`/`false`.
 - `ClearBotStatues()` remove todas. Use UMA vez por carga de script (o
-  `/reloadscripts` zera o estado Lua, mas nao as estatuas), e NAO a cada
+  `/reload scripts` zera o estado Lua, mas nao as estatuas), e NAO a cada
   rebuild: limpar tudo e recriar faz as estatuas sumirem e voltarem na tela
   dos jogadores toda vez. Para atualizar, mexa so no que mudou --
   `RemoveBotStatue` da posicao + `CreateBotStatue` do nome novo. Recriar a
