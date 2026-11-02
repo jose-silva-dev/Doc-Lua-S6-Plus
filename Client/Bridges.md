@@ -107,6 +107,12 @@ end
 
 Chamado ao clicar com mouse.
 
+## Limite de envio ao servidor (3.5.0)
+
+A ponte Lua de entrada no GameServer aceita uma rajada de até 32 pacotes por personagem e repõe a cota a 16 pacotes por segundo. O limite é compartilhado entre os nomes de pacotes dessa ponte. O excedente é descartado antes de executar os handlers Lua; não há fila automática nem desconexão por esse limite.
+
+Evite enviar consultas em cada frame. Consulte ao abrir a janela ou quando necessário e aguarde o resultado de compras/resgates antes de habilitar uma nova ação. Daily Reward possui ainda seu limite próprio de uma consulta e uma tentativa de resgate por segundo.
+
 ## Client.OnPacket
 
 ```lua

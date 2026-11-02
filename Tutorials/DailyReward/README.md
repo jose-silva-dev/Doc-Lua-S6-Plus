@@ -4,8 +4,20 @@ Este tutorial mostra como configurar o sistema Daily Reward, um calendario mensa
 
 O sistema funciona com duas partes:
 
-- Servidor: valida o dia, entrega o item, persiste o estado em SQL por conta + mes.
-- Cliente: janela com 6x5 slots, tooltip preview dos itens e botao flutuante (saquinho) na tela principal.
+- Servidor: valida o dia e reserva o resgate em SQL por conta + mes antes de solicitar a entrega do item.
+- Cliente: janela mensal, modelos 3D dos itens, tooltips e acesso pelo Atalho Rápido (Ctrl+F10).
+
+Na 4.0.0, `[DailyReward] panels=1` em `MuServer\Tools\MainInfo\UI\ui.ini` utiliza o visual ETERNAL LEGENDS. `panels=0` conserva a janela tradicional. O calendário mantém cinco colunas, com rolagem conforme a resolução e a quantidade de dias do mês. Selecionar um dia preserva a posição da rolagem.
+
+A janela tem até 900 px de largura e uma coluna de 280 px para a recompensa selecionada e o prêmio final. Em telas menores, o layout se adapta ao espaço disponível; em janelas muito baixas, a coluna de detalhes também permite rolagem. Os títulos usam Cormorant SC, os textos usam Lato e os detalhes visuais preservam as cores originais do ETERNAL LEGENDS. O botão Resgatar é compacto e possui efeito dourado; os estados indisponíveis não enviam solicitação de resgate.
+
+Para atualizar, utilize o Main, UI.bin e DailyReward.lua da mesma versão, além das texturas fornecidas em `Data\Custom\Interface\DailyReward`. Preserve também as pastas compartilhadas Login e ServiceMenu, as fontes e as licenças entregues com a nova interface. Mantenha o Lua em texto aberto e idêntico na pasta do cliente e em `MuServer\Tools\LuaCryptTool\ClientDecrypted`. Não é necessário alterar `config.bin` se a opção `panels=1` já estiver ativa.
+
+Os modelos 3D dos dias, do detalhe e do prêmio final continuam usando a calibração de `Local\System\MarketplaceItemPosition.txt`, sem uma tabela separada para o Daily Reward. A interface aplica uma ampliação local de 1,5 vez às joias pequenas conhecidas para melhorar sua leitura; armas, asas e itens customizados desconhecidos mantêm a escala da calibração compartilhada. Essa ampliação não altera a aparência no Marketplace. O Lua conserva o estado enviado pelo servidor: somente o dia atual pode ser resgatado, dias perdidos continuam expirados e o prêmio final exige todos os dias coletados. Não houve mudança no protocolo ou nas regras de entrega.
+
+### Tradução da janela moderna
+
+Título, meses, progresso, calendário, estados, botões, ajuda e os 31 nomes de prêmios mais o prêmio final usam `UI/Text/Eng.ini`, `Por.ini`, `Spn.ini` e `Cne.ini`, no `MainInfo` do Encoder. As chaves são `dailyreward.*`; os nomes configurados usam `dailyreward.reward.01` até `.31` e `dailyreward.reward.final`. Ao personalizar `DailyRewardConfig.lua`, ajuste as chaves correspondentes nos idiomas desejados para que o nome exibido coincida com o item entregue. A ausência de uma chave conserva o `label` do Lua. Depois de editar os textos, gere novamente o `config.bin` e reinicie o Main. O `UI.bin` inclui uma cópia padrão, mas o `config.bin` do administrador tem prioridade. As mensagens enviadas no chat pelo GameServer continuam configuradas separadamente em `messages` do Lua do servidor; não são texto da janela RmlUi. `panels=0` mantém a interface tradicional.
 
 ## Arquivos
 
@@ -20,9 +32,8 @@ Cliente:
 
 ```text
 Data\Custom\Lua\Systems\DailyReward.lua
-Data\Custom\Lua\Systems\DailyRewardButton.lua
 Data\Custom\Lua\Customs\Configs\DailyRewardConfig.lua
-Data\Custom\Interface\dailyre.ozt
+Data\Custom\Interface\MainMenu\daily.ozt
 Data\Custom\Interface\glow.ozt
 ```
 
@@ -31,6 +42,16 @@ SQL:
 ```text
 MuServer\SQL\Lua\Update1.6.5 - DailyReward.sql
 ```
+
+## Proteção do resgate (3.5.0)
+
+Atualize o GameServer/GameServerCS e o `DailyReward.lua` do servidor e execute `MuServer\SQL\Update3.5.0 - DailyReward.sql` na base configurada pelo Lua. A migration acrescenta a procedure de reserva e o registro de entregas; a tabela de calendário continua sendo a de `tableName`.
+
+O servidor confirma a reserva SQL antes de solicitar os itens. Falha na leitura ou na reserva bloqueia o resgate; pedidos repetidos, inclusive simultâneos, não reservam o mesmo dia ou prêmio final novamente. Consultas e tentativas de resgate aceitam no máximo uma solicitação por segundo, separadamente, por personagem. Trade, morte e outras operações incompatíveis também bloqueiam o resgate.
+
+`GX_DailyRewardDelivery` registra a reserva e quantos itens foram encaminhados para criação. `dispatched` significa que as solicitações foram enviadas, não uma confirmação individual de persistência dos itens. Se houver interrupção, erro ou entrega parcial, a reserva permanece bloqueada para impedir duplicação. O administrador deve conferir os registros e inventário antes de qualquer compensação manual; não limpe a reserva ou a marca do calendário para tentar novamente sem essa conferência. O log informa o identificador das reservas com falha detectada.
+
+A mensagem de indisponibilidade pode ser personalizada com `messages.databaseError` no `DailyRewardConfig.lua` do servidor.
 
 ## Ativar ou Desativar
 
@@ -110,6 +131,14 @@ Campos opcionais (para item full):
 - `itemOptionEx`: opcao extra, `0` a `255`.
 - `durability`: durability inicial, `0` a `255`. `0` usa o default do item.
 - `duration`: segundos ate expirar a partir da entrega. `604800` = 7 dias. `0` (ou ausente) = permanente.
+
+Joias e outros itens simples que tenham stack ativo em
+`MuServer\Data\Item\ItemStack.txt` chegam acumulados ate o limite desse
+arquivo e completam stacks existentes quando houver espaco. Por exemplo,
+`count = 30` de Bless entrega uma stack de 30; quantidades maiores que o
+limite sao divididas. Itens sem stack ou com durabilidade, tempo ou opcoes
+proprias continuam individuais. O servidor confere o espaco necessario antes
+de liberar o resgate.
 
 ## Configurar Mes com 28, 29, 30 ou 31 Dias
 
@@ -195,13 +224,15 @@ Use `%s` em `claimed` para receber o label da recompensa entregue.
 
 ## Janela do Cliente
 
-A janela usa `RenderTop`, abre acima do HUD e pode ser movida pela barra superior. A posicao fica em memoria ate fechar o cliente e volta ao padrao ao reiniciar.
+A janela usa o padrao nativo `GenesysUI`, abre acima do HUD e pode ser movida pela barra superior. Moldura, titulo, botao de fechar, cards e botao de resgate seguem o visual do cliente. A posicao fica em memoria ate fechar o cliente e volta ao padrao ao reiniciar. Clique fora da moldura para fechar a janela.
+
+O calendario usa 7 colunas. Meses de 28 dias ocupam quatro linhas; meses de 29, 30 ou 31 dias usam cinco, com a ultima linha centralizada. As coordenadas ja sao as coordenadas logicas da interface, sem multiplicar novamente toda a janela pelo `UIScale`; por isso o tamanho permanece consistente entre resolucoes e modos widescreen.
 
 Cada slot mostra:
 
 - Numero do dia no canto superior esquerdo.
-- Status no canto superior direito: `OK` (resgatado), `HOJE` (pode resgatar), `MISS` (perdeu) ou nada (futuro).
-- Icone do item centralizado.
+- Banner no topo: `RESGATADO`, `RESGATAR`, `EXPIRADO` ou `BLOQUEADO`. Cada estado possui cor e contorno proprios no mesmo padrao visual do Battle Pass.
+- Icone do item centralizado por ancora, com perfil visual para cada familia de item.
 - Label da recompensa.
 
 O hover exibe o tooltip nativo do MU usando os atributos definidos no config do cliente, incluindo `level`, `skill`, `luck`, `option`, `excellent` e `duration`. O preview deve representar exatamente os mesmos atributos que o servidor entrega.
@@ -218,25 +249,28 @@ Replique os campos cosmeticos (`section`, `index`, `count`, `label`, e opcionais
 
 Sempre que alterar a lista do servidor, atualize o cliente tambem. Tooltip preview deve casar com o item real entregue.
 
-## Botao Flutuante
+## Acesso pelo menu principal (4.0.0)
 
-A imagem do saquinho fica em:
+Abra o menu pelo botão **Menu** ou por **Ctrl+F10** e selecione **Daily Reward**.
+O acesso ao **Battle Pass** também está nesse menu.
 
-```text
-Data\Custom\Interface\dailyre.ozt
-Data\Custom\Interface\glow.ozt
-```
+O antigo `DailyRewardButton.lua` desenhava os dois botões laterais e não é
+mais necessário. Remova-o de `Data\Custom\Lua\Systems` e de
+`Data\Custom\Lua\Examples`, inclusive nas cópias correspondentes em
+`MuServer\Tools\LuaCryptTool\ClientDecrypted`. Remova também as antigas
+imagens `Data\Custom\Interface\dailyre.ozt` e `battlepass.ozt` do cliente.
+Mantenha `DailyReward.lua`, `BattlePass.lua` e suas configurações.
+Feche e reabra o cliente para descarregar os callbacks antigos.
 
-O formato OZT e `4 bytes de prefixo` + `imagem nativa` (PNG, TGA, etc). Sem encriptacao. Para trocar a imagem, gere o arquivo com seus 4 bytes de header e substitua.
-
-O botao fica no canto superior direito. Suas posicoes seguem a escala automatica do cliente (`UIScale`). Ao abrir uma janela modal (Inventario `V`, Cash Shop `X`, Gens `B`, Trade, Storage, Friend, Move Map, **janelas de dialogo de NPC** — quest, loja, gens/steward, guild master, etc), o botao some automaticamente.
+O ícone do menu fica em `Data\Custom\Interface\MainMenu\daily.ozt`.
+As opções do menu são descritas em [GenesysUI](../GenesysUI/README.md#menu-principal-400).
 
 ## Premio Final
 
 Alem dos rewards diarios, existe um **premio final** entregue **uma vez por mes** a quem
-coletar **todos os dias** do mes. Aparece como um slot em destaque (borda dourada) abaixo
-do calendario; fica bloqueado ate o jogador coletar todos os dias, e entao acende para
-resgate.
+coletar **todos os dias** do mes. Ele aparece em uma faixa integrada abaixo do calendario,
+ao lado do bloco da recompensa do dia. Fica bloqueado ate o jogador coletar todos os dias
+e entao recebe borda dourada para resgate.
 
 Configuracao (nas DUAS configs, server e cliente, mantendo iguais):
 
@@ -280,11 +314,11 @@ Apos `F6` no cliente, o estado local e perdido. O proximo clique no saquinho env
    DELETE FROM LuaDailyReward;
    ```
 2. Reload de scripts no servidor.
-3. F6 no cliente.
+3. Reinicie o Main se o script client-side foi alterado.
 4. Entre no jogo.
-5. Clique no saquinho. A janela abre, dia atual mostra `HOJE`.
+5. Clique na imagem `Daily Reward`. A janela abre e o dia atual mostra `HOJE`.
 6. Passe o mouse no dia atual. Confira o tooltip preview.
-7. Clique em `Resgatar Hoje (dia X)`.
+7. Clique em `Resgatar`.
 8. Abra o inventario. Confira o tooltip do item real entregue.
 9. Tooltip da janela e tooltip do inventario devem mostrar os mesmos atributos.
 

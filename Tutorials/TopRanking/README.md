@@ -59,7 +59,7 @@ end)
 - **`renderId`**: inteiro arbitrario, deve ser unico por slot e nao colidir
   com outros sistemas que usem PhotoViewer.
 
-- **`User.SendCharacterRender`** valida o nome contra `[A-Za-z0-9_]{1,10}`
+- **`User.SendCharacterRender`** valida nomes UTF-8 representáveis em até 10 bytes CP936 (até 5 ideogramas comuns)
   antes do request ao DataServer. Nomes invalidos retornam `false`.
 
 ## Script do cliente

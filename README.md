@@ -14,6 +14,8 @@ Documentacao
 |   |-- Bridges.md
 |   `-- Functions.md
 |-- Tutorials
+|   |-- ItemRotation
+|   |   `-- README.md
 |   |-- GenesysUI
 |   |   `-- README.md
 |   |-- BattlePass
@@ -76,6 +78,9 @@ Data\Scripts\Custom\System\TopStatues.lua
 
 Scripts executados pelo Main.
 
+O [exemplo de rotação de itens](Tutorials/ItemRotation/README.md) mostra o controle
+de ângulo e giro automático nas interfaces Lua a partir da 4.0.0.
+
 Arquivos principais:
 
 ```text
@@ -108,7 +113,7 @@ clique e consumido para nao mover o personagem nem acionar o cenario por tras.
 
 ## Seguranca de callbacks
 
-Callbacks registrados via `GameServerFunctions.*`, `command:add`, `Timer.Interval` e `DataBase.RunAfterLoad` ja executam sob `LuaCore`. Erros em `LOGS\LOG\LuaCore_YYYY-MM-DD.txt`. Uso direto de `LuaCore.SafeCall` reservado para sistemas avancados que chamem outros modulos fora das APIs publicas.
+Callbacks registrados via `GameServerFunctions.*`, `command:add`, `Timer.Interval` e `DataBase.RunAfterLoad` ja executam sob `LuaCore`. Erros em `LOGS\LUA_LOG\LuaCore_YYYY-MM-DD.txt`. Uso direto de `LuaCore.SafeCall` reservado para sistemas avancados que chamem outros modulos fora das APIs publicas.
 
 No server-side, os sistemas com tabelas proprias criam/validam automaticamente a estrutura apos a conexao com a DB:
 

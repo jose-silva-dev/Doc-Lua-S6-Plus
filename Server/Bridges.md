@@ -2,7 +2,13 @@
 
 Bridges sao eventos chamados pelo GameServer. O script registra uma funcao e o servidor chama quando o evento acontecer.
 
-Callbacks registrados via `GameServerFunctions` executam sob `LuaCore`. Erros sao registrados em `LOGS\LOG\LuaCore_YYYY-MM-DD.txt`; demais callbacks continuam executando.
+Callbacks registrados via `GameServerFunctions` executam sob `LuaCore`. Erros sao registrados em `LOGS\LUA_LOG\LuaCore_YYYY-MM-DD.txt`; demais callbacks continuam executando.
+
+## Solicitações do cliente (3.5.0)
+
+Antes de chamar `GameServerFunctions.ClientPacket`, o GameServer limita a ponte Lua por sessão: até 32 pacotes de rajada, com reposição de 16 por segundo. Pacotes excedentes são descartados. O limite é compartilhado por todos os handlers; cada sistema continua responsável por validar valores, permissão e estado do personagem.
+
+BuffSeller e Lucky Wheel usam o novo `Data\Scripts\LuaSystem\NpcAccess.lua`. No BuffSeller, somente uma conversa autorizada com o NPC permite comprar, permanecendo no mapa e a até 5 coordenadas por eixo do NPC, no servidor configurado. A autorização é limpa no logout e expira após 5 minutos sem uso. Atualize o helper, os scripts dos sistemas e GS/GSCS em conjunto. A abertura remota configurada da Lucky Wheel continua disponível pelo comando.
 
 ## Exemplo base
 
@@ -259,7 +265,7 @@ GameServerFunctions.PlayerSendParty(function(playerIndex, targetIndex)
 end)
 ```
 
-Chamado quando um jogador envia convite de party.
+Chamado quando um jogador envia convite de party. Também valida a entrada por senha no mesmo GameServer (`/joinparty` e sussurro com a senha ao líder), inclusive entre mapas. Nesse caminho, `playerIndex` é quem solicita entrada e `targetIndex` é o líder; retorno `0` permite continuar e retorno diferente de `0` recusa. Os requisitos do servidor são conferidos novamente após o callback. O painel de Busca de Party também dispara este callback ao entrar em uma party pública ou com senha no mesmo GameServer. Guild, nível normal mínimo e classe são revalidados no servidor após o callback. A reconexão a uma party com senha ou com anúncio público ativo também passa por esta validação.
 
 ## CharacterSet
 

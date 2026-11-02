@@ -167,16 +167,18 @@ LuaSecurity.MaxCallbackMs = 100
 LuaSecurity.LogSlowCallbacks = true
 ```
 
-Quando `LuaSecurity.LogSlowCallbacks` esta ativo, callbacks protegidos que passam de `MaxCallbackMs` geram log em `LOGS\LOG\LuaCore_YYYY-MM-DD.txt`, mas continuam funcionando.
+Quando `LuaSecurity.LogSlowCallbacks` esta ativo, callbacks protegidos que passam de `MaxCallbackMs` geram log em `LOGS\LUA_LOG\LuaCore_YYYY-MM-DD.txt`, mas continuam funcionando.
 
 ## LuaCore
+
+O LuaCore grava diretamente, sem executar CMD ou criar processos. Se `LOGS\LUA_LOG` estiver ausente ou indisponivel, tenta `LOGS\LOG\LuaCore_YYYY-MM-DD.txt`, na pasta criada pelo GameServer. Se a gravacao tambem falhar, usa `LogPrint` com mensagem limitada a 900 caracteres e sem quebras de linha. O script atualizado entra em vigor no proximo reload dos scripts ou reinicio do GameServer.
 
 ```lua
 LuaCore.SafeCall(context, callback, ...)
 LuaCore.RegisterCallback(list, eventName, callback)
 ```
 
-`LuaCore` protege callbacks com `xpcall`; erros vao para `LOGS\LOG\LuaCore_YYYY-MM-DD.txt` e demais scripts continuam executando. Uso direto reservado para sistemas avancados.
+`LuaCore` protege callbacks com `xpcall`; erros vao para `LOGS\LUA_LOG\LuaCore_YYYY-MM-DD.txt` e demais scripts continuam executando. Uso direto reservado para sistemas avancados.
 
 Exemplo:
 
@@ -344,7 +346,7 @@ command:add(commandText, callback)
 
 Registra comando custom.
 
-Os callbacks de comandos sao protegidos pelo LuaCore. Um erro dentro de um comando e registrado em `LOGS\LOG\LuaCore_YYYY-MM-DD.txt` e nao derruba os demais callbacks Lua.
+Os callbacks de comandos sao protegidos pelo LuaCore. Um erro dentro de um comando e registrado em `LOGS\LUA_LOG\LuaCore_YYYY-MM-DD.txt` e nao derruba os demais callbacks Lua.
 
 Exemplo:
 
@@ -378,7 +380,7 @@ Timer.Interval(seconds, callback)
 
 Executa uma funcao repetidamente.
 
-Os callbacks de timer sao protegidos pelo LuaCore. Um erro dentro de um timer e registrado em `LOGS\LOG\LuaCore_YYYY-MM-DD.txt` e nao interrompe o restante da base Lua.
+Os callbacks de timer sao protegidos pelo LuaCore. Um erro dentro de um timer e registrado em `LOGS\LUA_LOG\LuaCore_YYYY-MM-DD.txt` e nao interrompe o restante da base Lua.
 
 Exemplo:
 
@@ -410,7 +412,36 @@ DataBase.RunAfterLoad(callback)
 
 Executa consultas SQL.
 
-Callbacks registrados em `DataBase.RunAfterLoad(callback)` sao executados com protecao do `LuaCore` apos a conexao do banco. Se o callback gerar erro, o erro vai para `LOGS\LOG\LuaCore_YYYY-MM-DD.txt`.
+Na 4.0.0, consultas UTF-8 usam ODBC Unicode; `db:getStr` e o resultado assíncrono
+retornam UTF-8 ao ler colunas `nvarchar`/`nchar`. Contas ASCII e colunas ANSI
+existentes mantêm o comportamento anterior. Para valores Unicode em SQL escrito
+manualmente, use literais `N'...'` e colunas Unicode. O bridge não acrescenta `N`
+ao texto de consultas arbitrárias.
+
+`DataBase.StringLiteral(valor)` escapa apóstrofos e monta o literal: ASCII usa
+`'...'`, valores não ASCII usam `N'...'`. Os helpers `GetValue`, `GetString`,
+`SetValue`, `SetString`, `SetAddValue` e `SetDecreaseValue` já o utilizam.
+
+```lua
+local nome = User.new(playerIndex):getName()
+local sql = "SELECT Name FROM Character WHERE Name=" .. DataBase.StringLiteral(nome)
+local confirmado = DataBase.QueryGetString(sql, "Name")
+```
+
+Isso não migra tabelas de scripts particulares. Se elas guardarem nomes chineses,
+suas colunas, parâmetros e variáveis SQL de nome também precisam ser Unicode.
+
+
+Na 3.6.0, créditos persistidos em `CashShopData` por estas conexões entram na
+auditoria de Coins com origem `LuaSQL` (consulta síncrona) ou `LuaSQLAsync`
+(consulta assíncrona). A referência usa o arquivo chamador quando disponível
+ou o nome do job assíncrono. Não são gravados o texto da consulta, senhas ou
+credenciais. É necessário instalar `Update3.6.0 - CoinLog.sql`; o arquivo diário
+é exportado pelo GS configurado em `GX_CoinLogConfig`, com `WriteCoinLog=1`.
+Transações desfeitas e operações sem aumento de saldo não geram créditos no log.
+
+
+Callbacks registrados em `DataBase.RunAfterLoad(callback)` sao executados com protecao do `LuaCore` apos a conexao do banco. Se o callback gerar erro, o erro vai para `LOGS\LUA_LOG\LuaCore_YYYY-MM-DD.txt`.
 
 A conexao usa os dados enviados no `GameServer.lua`. Mesmo que o ODBC do Windows esteja configurado como conexao confiavel, o bridge Lua força `Trusted_Connection=No` e autentica com `user` e `password` informados em `DataBase.Connect`.
 

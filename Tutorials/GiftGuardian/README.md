@@ -63,7 +63,7 @@ Para permitir mais de um comando:
 commands = { "/gift", "/brinde", "/cupom" }
 ```
 
-Depois de alterar o arquivo, reinicie o GameServer ou use o reload de scripts do servidor.
+Depois de alterar o arquivo, use `/reload scripts` ou reinicie o GameServer.
 
 ## Abrir por NPC
 
@@ -97,7 +97,13 @@ Campos:
 - `dir`: direcao.
 - `checkPosition`: evita abrir a janela para interacoes fora da posicao esperada.
 
-Depois de alterar o NPC, reinicie o GameServer.
+Depois de alterar o NPC, use `/reload scripts` ou reinicie o GameServer.
+Com GS/GSCS atualizados, o NPC do GiftGuardian tem a tag propria
+`GiftGuardian`: mudar classe, mapa ou posicao substitui somente o anterior,
+sem acumular copias e sem remover NPCs fixos do `MonsterSetBase`.
+`/reload monster` reconstrói os monstros e NPCs do mapa e chama o callback Lua
+com a configuracao ja carregada; para ler uma configuracao editada, use
+`/reload scripts`.
 
 ## Tabelas do Banco
 
@@ -271,6 +277,14 @@ reusableCodes = {
 
 Codigos nessa lista podem ser retirados varias vezes e nao registram uso em `GiftGuardianClaims`.
 
+A lista deve usar o codigo como chave:
+
+```lua
+reusableCodes = {
+	["CODIGO-TESTE"] = true,
+}
+```
+
 Use apenas para testes. Em producao, remova o codigo dessa lista ou deixe:
 
 ```lua
@@ -338,16 +352,16 @@ Exemplo:
 GiftGuardianConfig = {
 	enabled = true,
 	window = {
-		width = 300,
-		height = 270,
+		width = 326,
+		height = 356,
 		x = 170,
-		y = 96,
+		y = 62,
 		center = true,
 		maxItems = 6,
-		itemIconSize = 15,
-		itemIconScale = 0.30,
+		itemIconSize = 38,
+		itemIconScale = 0.65,
 		itemIconOffsetX = 0,
-		itemIconOffsetY = -2,
+		itemIconOffsetY = 0,
 	},
 	text = {
 		loading = "Buscando brindes...",
@@ -355,9 +369,21 @@ GiftGuardianConfig = {
 }
 ```
 
-A janela usa `RenderTop`, entao fica acima do HUD e dos textos nativos. Ela tambem pode ser movida pela barra superior; a posicao fica em memoria ate fechar o cliente.
+A janela usa o padrao nativo `GenesysUI`, com moldura redimensionavel, titulo e botao de fechar integrados. Os brindes aparecem em cards `character_ex`, em duas colunas, e os botoes `Buscar` e `Retirar` usam o visual nativo do cliente. O conteudo interno utiliza um espacamento vertical compacto, mantendo textos, campo, cards, rolagem e botoes alinhados.
 
-Cada clique em um item alterna entre marcado e desmarcado. Quando mais de um item estiver marcado, o botao mostra a quantidade selecionada.
+Ela continua usando `RenderTop`, entao fica acima do HUD e dos textos nativos. Tambem pode ser movida pela barra superior; a posicao fica em memoria ate fechar o cliente. Com `center = true`, a janela inicia centralizada independentemente da resolucao. Clique fora da moldura para fechar a janela.
+
+`maxItems` define quantos brindes ficam visiveis ao mesmo tempo. O tamanho minimo da janela e calculado automaticamente para comportar essa quantidade sem sobrepor o botao inferior. O padrao `6` exibe tres linhas com dois cards.
+
+Quando o cupom possui mais brindes que `maxItems`, a barra de rolagem nativa aparece automaticamente. Ela aceita roda do mouse, clique na trilha e arraste direto do marcador. A selecao permanece marcada ao rolar para outras linhas.
+
+`itemIconSize` controla a area usada pelo preview 3D e `itemIconScale` controla a escala do item dentro dela. O padrao usa preview centralizado de `38x38` com escala `0.65`.
+
+Cada clique em um item alterna entre marcado e desmarcado. A linha de status mostra quantos itens estao selecionados, enquanto o botao `Retirar` preserva o tamanho original da textura nativa.
+
+Enquanto o campo de codigo estiver em foco, letras, numeros, `-`, Backspace e Enter sao consumidos pela janela. Assim, digitar uma letra que tambem seja atalho do cliente, como `D`, nao abre outra interface por tras do Gift Guardian.
+
+O campo aceita somente os caracteres que o servidor reconhece nos cupons: `A-Z`, `0-9`, `-` e `_`. O servidor normaliza o codigo para maiusculas.
 
 A listagem pode chegar em varios pacotes internos quando o codigo possui muitos brindes.
 

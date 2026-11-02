@@ -15,6 +15,18 @@ if player ~= nil and player:isPlaying() then
 end
 ```
 
+## Nomes de personagens (4.0.0)
+
+`player:getName()` retorna UTF-8. As buscas `User.getByName`, `GetUserByName`,
+`GetUserIndexByName`, `User.SendCharacterRender` e `User.CreateBotStatue` recebem
+UTF-8. Nomes ASCII continuam iguais. Nomes chineses exigem a migração SQL opcional
+no servidor e Main, GS/GSCS, DataServer e JoinServer atualizados juntos.
+
+O protocolo mantém 10 bytes em CP936: até 5 ideogramas comuns representáveis,
+ou letras/números misturados dentro desse limite. Hífen e sublinhado seguem a
+política do servidor na criação. Não corte nomes com `string.sub` por quantidade
+de caracteres: o comprimento de uma string Lua UTF-8 é medido em bytes.
+
 ## Estado
 
 ```lua
@@ -27,12 +39,24 @@ player:isPlaying()
 player:isVip()
 player:isGM()
 player:isMarketplaceBusy()
+player:canUseCustomNpc()
 ```
+
+## Disponibilidade para serviços customizados (3.5.0)
+
+`player:canUseCustomNpc()` retorna `true` quando o personagem está online, vivo e disponível para usar um serviço. Retorna `false` durante morte/regeneração, transferência de servidor, viagem de Airship, trade, interface nativa ocupada, loja pessoal, aposta de duelo ou transação pendente do Marketplace, loja pessoal ou compra de VIP.
+
+```lua
+local player = User.new(playerIndex)
+if not player:canUseCustomNpc() then return end
+```
+
+O método apenas consulta o estado. Não autoriza acesso a um NPC, não confere distância e não reserva moedas ou itens. BuffSeller e Lucky Wheel também usam `Data\Scripts\LuaSystem\NpcAccess.lua` para verificar a abertura pelo servidor, o NPC, mapa, distância e sessão do personagem antes de aceitar uma ação.
 
 ## Espera de transação do Marketplace (3.4.0)
 
 `player:isMarketplaceBusy()` retorna boolean: true enquanto **esse personagem**
-aguarda confirmação de uma operação nativa do Marketplace. Outros personagens
+aguarda confirmação de uma operação nativa do Marketplace. Na 3.5.0 também abrange a compra protegida da loja pessoal e a compra de VIP. Outros personagens
 continuam disponíveis. Consultas de inventário e atributos permanecem permitidas.
 
 Durante essa espera, métodos de alteração de User (itens, moedas, atributos,
@@ -71,6 +95,11 @@ player:getAccountExpireDate()
 player:getGuildName()
 player:getGuildNumber()
 ```
+
+`getGuildName()` retorna o nome da guilda em UTF-8, inclusive nomes chineses.
+O protocolo mantém até 8 bytes CP936 (até quatro ideogramas comuns); o tamanho
+em bytes da string UTF-8 no Lua pode ser maior. Para consultas SQL, use
+`DataBase.StringLiteral(nome)` e não converta o nome para a página de código local.
 
 ## Posicao e personagem
 
@@ -120,17 +149,28 @@ player:getCoin1()
 player:getCoin2()
 player:getCoin3()
 player:refreshCoins()
-player:setCoin1(value)
-player:setCoin2(value)
-player:setCoin3(value)
-player:addCoin1(value)
-player:addCoin2(value)
-player:addCoin3(value)
+player:setCoin1(value, origin)
+player:setCoin2(value, origin)
+player:setCoin3(value, origin)
+player:addCoin1(value, origin)
+player:addCoin2(value, origin)
+player:addCoin3(value, origin)
 
 player:getLevelUpPoint()
 player:setLevelUpPoint(value)
 player:addLevelUpPoint(value)
 ```
+
+Desde a 3.6.0, `origin` é opcional nos seis métodos `setCoin1/2/3` e
+`addCoin1/2/3`. Use uma identificação de até 28 bytes, por exemplo
+`player:addCoin1(100, "DailyReward")`. O crédito confirmado será identificado como
+`Lua:DailyReward` na auditoria de Coins; sem esse argumento, a origem é `Lua`.
+Quando disponível, a referência identifica o arquivo Lua que chamou a API.
+O retorno desses métodos continua sendo o saldo local calculado; não é confirmação
+SQL. O `COIN_LOG` registra somente aumentos efetivamente persistidos em
+`CashShopData`, com os saldos antes/depois e respeitando o resultado da transação.
+Requer a migração `Update3.6.0 - CoinLog.sql`, DataServer e GameServers da 3.6.0;
+`WriteCoinLog=1` ativa a exportação no GS definido em `GX_CoinLogConfig`.
 
 `refreshCoins()` solicita ao DataServer os valores atuais de WCoinC, WCoinP e
 Goblin Point e sincroniza o saldo do jogador conectado. Retorna `true` quando a
@@ -544,14 +584,22 @@ personagem `charName` indexados por `renderId`. O cliente desenha com
 `Client.RenderStoredCharacter(renderId, x, y, w, h, ...)`. Funciona com
 chars online (imediato) e offline (round-trip transparente).
 
+Com o Inventario Visual habilitado, a aparencia enviada usa os visuais
+equipados compativeis, mantendo o item real quando nao ha visual aplicavel.
+Isso nao altera inventario, atributos ou saldos. Cada pedido para um
+personagem online consulta a aparencia atual; personagens offline podem
+usar o cache de ate 30 segundos. Envie novamente para atualizar a previa
+que ja esta guardada no cliente. Main, GS/GSCS e DataServer devem ser
+atualizados juntos para esta integracao; a assinatura Lua nao mudou.
+
 Exemplo:
 
 ```lua
 User.SendCharacterRender(playerIndex, 2001, "Patricia")
 ```
 
-Nomes com caracteres fora de `[A-Za-z0-9_]` ou maiores que 10 retornam
-`false`. Tutorial completo em `Tutorials/TopRanking/README.md`.
+Nomes inválidos em UTF-8, não representáveis em CP936 ou maiores que 10 bytes
+no protocolo retornam `false`. Tutorial completo em `Tutorials/TopRanking/README.md`.
 
 ### Estatua de personagem no mundo (Bot Statue)
 
@@ -566,6 +614,14 @@ equipamento verdadeiros vindos do banco (online copia da memoria; offline
 busca no DataServer). A estatua nao anda, nao ataca, nao morre e nao aceita
 comandos da Janela de Comando do cliente (holograma). Usos tipicos: podio
 do top ranking, homenagens, decoracao de evento.
+
+Desde a 4.0.0, a estatua tambem usa os itens compativeis do Inventario Visual
+quando `InventoryVisualSwitch = 1`, tanto online quanto offline. Sem visual
+valido, mostra o equipamento normal. Isso altera somente a aparencia.
+A aparencia e capturada na criacao da estatua; repetir a chamada para o
+mesmo nome e posicao conserva a estatua existente. Para renovar a aparencia,
+remova o slot com `RemoveBotStatue` e crie novamente. O TopStatues atualiza
+as posicoes quando o ranking muda; nao acompanha trocas de itens em tempo real.
 
 A estatua NAO renderiza montaria, mesmo que o personagem tenha uma equipada
 (desde a 2.2.1). Dentro de safezone o cliente encolhe a montaria pra mini pet
@@ -585,7 +641,7 @@ pet minusculo no chao. Asa, set, arma e o resto do equipamento vem normal.
   MESMA estatua na mesma posicao devolve o slot existente sem respawnar, entao
   posicao que nao mudou nao pisca. O `Custom\System\TopStatues.lua` faz assim.
 - Limite: 64 estatuas simultaneas. As mesmas regras de nome do
-  `SendCharacterRender` valem aqui (`[A-Za-z0-9_]`, ate 10 caracteres).
+  `SendCharacterRender` valem aqui (UTF-8 na API, até 10 bytes em CP936).
 - Todas as classes nativas do personagem são convertidas internamente pela
   API, incluindo `DBClass = 50` (Duel Master). O script deve informar apenas
   o nome do personagem; não é necessário converter `Class`, `ChangeUp` ou

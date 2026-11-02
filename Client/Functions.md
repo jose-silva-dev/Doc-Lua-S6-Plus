@@ -93,6 +93,20 @@ Exemplo:
 Client.RenderImage(92010, 120, 90, 300, 120)
 ```
 
+### Client.RenderImageTinted
+
+```lua
+Client.RenderImageTinted(imageId, x, y, width, height, red, green, blue, alpha)
+```
+
+Disponível na 4.0.0, também como `ClientAPI.RenderImageTinted`. Desenha uma
+imagem carregada com multiplicação RGBA (canais de 0 a 255). Uma imagem branca
+com transparência permite colorir ícones e máscaras conforme o tema. Preserva
+a transparência, usa as mesmas coordenadas de `RenderImage` e restaura a cor
+branca ao terminar. Não modifica a textura nem os desenhos seguintes.
+Retorna `false` para imagem inexistente ou dimensões inválidas; canais fora
+do intervalo são limitados. Para manter as cores originais, use 255 nos quatro.
+
 ### Client.RenderImageUV
 
 ```lua
@@ -389,7 +403,9 @@ Client.IsMouseRightButtonPop()
 Client.IsWindowActive()
 ```
 
-`Client.IsKeyboardInputCaptured()` retorna `true` quando o teclado esta focado em chat/editbox nativo ou quando uma janela Lua travou a interface. Use antes de atalhos globais lidos por `Client.IsKeyDown`.
+`Client.IsWindowActive()` indica se esta instância está com o foco de entrada. No modo de abas, retorna `false` para as outras abas, mesmo quando aparecem na tela dividida.
+
+`Client.IsKeyboardInputCaptured()` retorna `true` quando o teclado esta focado em chat/editbox nativo, quando uma janela Lua travou a interface ou enquanto o menu principal (Ctrl+F10) esta aberto, incluindo a busca. Na 4.0.0, tambem protege o breve intervalo de fechamento do menu para evitar que a mesma tecla acione outra janela. Use antes de atalhos globais lidos por `Client.IsKeyDown`.
 
 `Client.IsMouseLeftButtonHeld()` lê o estado físico contínuo do botão esquerdo. Use em arraste de janelas, sliders e barras de rolagem. Diferente de `Client.IsMouseLeftButton()`, ele continua retornando `true` depois de `Client.BlockMouse()` proteger a interface; retorna `false` quando o cliente perde o foco.
 
@@ -491,11 +507,43 @@ Client.SetEquipmentVisible(enabled)
 Client.IsEquipmentVisible()
 ```
 
-`Client.GetWindowWidth()` e `Client.GetWindowHeight()` retornam a resolucao fisica configurada. Para posicionar janelas Lua na mesma escala das interfaces nativas, use `Client.GetInterfaceWidth()` e `Client.GetInterfaceHeight()`.
+`Client.GetWindowWidth()` e `Client.GetWindowHeight()` retornam as dimensões físicas atuais da área do jogo. No modo de abas, correspondem à área daquela aba, inclusive em tela dividida; não ao tamanho do host inteiro nem necessariamente ao preset salvo.
+
+Para posicionar e centralizar janelas Lua na mesma escala das interfaces nativas, use `Client.GetInterfaceWidth()` e `Client.GetInterfaceHeight()`. Na 4.0.0, a escala se adapta às áreas pequenas: esses valores são dimensões lógicas e podem ser maiores que a quantidade de pixels da aba. Recalcule as posições quando as dimensões mudarem. Não aplique novamente um fator de redução ao desenho nativo nem misture pixels físicos com coordenadas lógicas de desenho/clique. Scripts que usam coordenadas fixas baseadas na resolução anterior precisam atualizar esse cálculo.
 
 `ClientAPI.IsLuckyWheelModernUI()` retorna `true` quando `[LuckyWheel] panels=1` em `UI\ui.ini` foi incorporado ao `config.bin` pelo Encoder; caso contrario, retorna `false`. Disponivel a partir da 3.5.0; scripts que tambem devem funcionar em Main antigo precisam verificar se a funcao existe antes de chama-la.
 
+Na 4.0.0, a Lucky Wheel moderna utiliza o documento `LuckyWheel/luckywheel.rml`
+de `UI.bin`. A ponte interna `Client.LuckyWheelRmlRender(html, items, highlight, vault)`
+apresenta o conteúdo UTF-8 e os modelos 3D; cada item recebe `slot`, `itemIndex`,
+`level` (nível codificado, nível do item × 8), `excellent` e `ancient`.
+`slot` usa 1–16 para a roleta e 1001–1080 para as linhas do cofre.
+`LuckyWheelRmlUpdateInput()` retorna uma ação que o sistema Lua valida antes
+de enviar qualquer pedido ao servidor; `LuckyWheelRmlHoveredReward()` identifica
+o item sob o mouse e `LuckyWheelRmlClose()` oculta a apresentação.
+Essas funções são internas ao sistema fornecido, não substituem `LuckyWheel.Open()`
+e `LuckyWheel.Close()` nem autorizam giros ou resgates. Scripts compatíveis com
+Main antigo devem verificar a existência das funções antes de utilizá-las.
+
 `ClientAPI.IsDailyRewardModernUI()` consulta `[DailyReward] panels=1` no mesmo `UI\ui.ini` do Encoder. `false` (ou função ausente em Main antigo) mantém o calendário Lua tradicional. A revisão moderna em teste usa um documento RmlUi de `UI.bin` e a ponte interna `Client.DailyRewardRmlRender`, `DailyRewardRmlUpdateInput`, `DailyRewardRmlHoveredReward` e `DailyRewardRmlClose`; o Lua continua responsável por validar as ações antes de enviar ao servidor. Os poços 3D do RmlUi passam pelo mesmo renderizador e pela mesma `Local\System\MarketplaceItemPosition.txt` do Marketplace. Se o documento não estiver disponível, o Lua mantém a janela tradicional.
+
+`ClientAPI.IsBattlePassModernUI()` consulta `[BattlePass] panels = 1` no `UI\ui.ini`
+incorporado pelo Encoder. A chave ausente ou `0` mantém a janela original.
+Disponível na 4.0.0; verifique a existência da função ao suportar Main antigo.
+
+A ponte interna `Client.BattlePassRmlRender(html, items, selected)` apresenta o
+documento `BattlePass/battlepass.rml` de `UI.bin`. Os itens usam `slot` de 1 a 28,
+`itemIndex`, `level` codificado (nível × 8), `excellent` e `ancient`.
+`BattlePassRmlUpdateInput()` devolve a ação para validação no script;
+`BattlePassRmlHoveredReward()` identifica o nível sob o mouse e
+`BattlePassRmlClose()` oculta a janela. São funções internas do sistema, não
+substituem `BattlePass.Open()`/`BattlePass.Close()` nem autorizam compra ou resgate.
+Sem o documento disponível, o script preserva a apresentação original.
+
+`Client.BattlePassRmlTime()` fornece segundos monotônicos para os intervalos
+internos do Battle Pass. O script não depende de `os.time()` ou `os.clock()`:
+o Lua do Main disponibiliza as bibliotecas base, string, table e math, sem os,
+io, debug ou package. Se essa ponte estiver ausente, use a janela original.
 
 `Client.GetUIThemeColorHex(key)` devolve `#RRGGBB` ou `#RRGGBBAA` para uma chave conhecida de `[Theme]`, usando a mesma validação e os mesmos valores do RmlUi; chave desconhecida devolve texto vazio. Exemplo: `Client.GetUIThemeColorHex("accent")`. `GenesysUI.ThemeColor(key)` converte isso em `{r, g, b, a}`, `GenesysUI.RenderThemeBox` desenha uma cor da paleta e `GenesysUI.RenderThemeGradient` usa `gradientstart` e `gradientend`. Essas funções atendem às janelas Lua modernas; os desenhos tradicionais continuam como antes. Edite `MuServer\Tools\MainInfo\UI\ui.ini`, gere o `config.bin` pelo Encoder e reinicie o Main. Repetir as duas cores do degradê cria um preenchimento uniforme.
 
@@ -551,10 +599,10 @@ end
 ### Client.RenderItem
 
 ```lua
-Client.RenderItem(x, y, width, height, itemIndex, level, option1, extOption)
-Client.RenderItemScaled(x, y, width, height, itemIndex, level, option1, extOption, scale)
-Client.RenderItemCentered(x, y, width, height, itemIndex, level, option1, extOption, scale)
-Client.RenderMarketplaceItem(x, y, width, height, itemIndex, level, excellent, ancient)
+Client.RenderItem(x, y, width, height, itemIndex, level, option1, extOption[, rotation])
+Client.RenderItemScaled(x, y, width, height, itemIndex, level, option1, extOption, scale[, rotation])
+Client.RenderItemCentered(x, y, width, height, itemIndex, level, option1, extOption, scale[, rotation])
+Client.RenderMarketplaceItem(x, y, width, height, itemIndex, level, excellent, ancient[, rotation])
 ```
 
 Desenha preview 3D de item.
@@ -630,13 +678,78 @@ Client.RenderItemCentered(x + offsetX, y + offsetY, 40, 40, itemIndex, byte, opt
 
 Parametro opcional `duration` em segundos a partir de agora. Maior que `0` ativa a linha `Dia de Expiracao` no tooltip. Use `604800` para 7 dias.
 
+### Rotação de itens (4.0.0)
+
+As quatro funções acima aceitam uma tabela opcional `rotation` no último argumento.
+Os colchetes nas assinaturas indicam um argumento opcional; não são parte da chamada Lua.
+As funções globais equivalentes (`ClientRenderItem`, `ClientRenderItemScaled`,
+`ClientRenderItemCentered`, `ClientRenderMarketplaceItem` e `CreateItem`) também
+aceitam a tabela. Os auxiliares existentes `ClientAPI.RenderItem` e
+`ClientAPI.RenderItemScaled` repassam as mesmas opções.
+
+| Campo | Tipo | Padrão | Uso |
+| --- | --- | --- | --- |
+| `angle` | número | `0` | Ângulo adicional em graus no eixo Y do item. Aceita valores negativos e voltas completas. |
+| `autoRotate` | booleano | `false` | Ativa o giro automático calculado pelo cliente. |
+| `rotationSpeed` | número | `30` | Graus por segundo quando `autoRotate = true`. Aceita de `-3600` a `3600`; negativo inverte o sentido e zero mantém o ângulo. |
+
+Sem o argumento, com `nil` ou com uma tabela vazia, o comportamento anterior é
+preservado, inclusive a rotação nativa por seleção quando aplicável. Informar
+qualquer um dos três campos passa a controlar a rotação dessa chamada: o mouse
+não substitui o ângulo. Use `{ angle = 0 }` ou `{ autoRotate = false }` para manter
+a orientação calibrada sem giro por seleção. `rotationSpeed` sozinho não ativa o giro.
+
+```lua
+-- Chamada existente: continua funcionando sem alterações.
+Client.RenderMarketplaceItem(x, y, 96, 96, itemIndex, byte, excellent, ancient)
+
+-- Orientação calibrada, sem giro ao passar o mouse.
+Client.RenderMarketplaceItem(x, y, 96, 96, itemIndex, byte, excellent, ancient,
+    { angle = 0 })
+
+-- Ângulo fixo adicional de 45 graus.
+Client.RenderMarketplaceItem(x, y, 96, 96, itemIndex, byte, excellent, ancient,
+    { angle = 45 })
+
+-- Giro automático: uma volta a cada 12 segundos.
+Client.RenderMarketplaceItem(x, y, 96, 96, itemIndex, byte, excellent, ancient,
+    { autoRotate = true, rotationSpeed = 30 })
+
+-- Mesmo controle nos renderizadores tradicionais: tabela depois de scale.
+Client.RenderItemScaled(x, y, 40, 40, itemIndex, byte, excellent, ancient, 0.7,
+    { angle = 90, autoRotate = true, rotationSpeed = -30 })
+```
+
+Continue chamando a função em cada quadro, dentro do callback de renderização da
+janela. Você pode criar a tabela uma vez fora do callback e reutilizá-la. O giro
+usa um relógio comum do cliente e mantém a velocidade independentemente do FPS
+ou da quantidade de itens. Itens com a mesma velocidade e o mesmo `angle` ficam
+na mesma fase; `angle` acrescenta uma diferença entre eles. Esconder a janela,
+trocar o item ou recarregar o Lua não reinicia esse relógio. Para controlar uma
+sequência própria, forneça `angle` e deixe `autoRotate` desligado.
+
+A rotação é somada à orientação nativa e à calibração do Marketplace, sem alterar
+o arquivo de posicionamento. O recorte do Marketplace continua no retângulo
+informado: confira a volta completa de modelos largos, como armas e asas.
+A função não cria itens no inventário e não exige identificador, criação ou
+limpeza de um objeto persistente. `level`, opções e efeitos mantêm o formato atual.
+
+Uma tabela com tipos incorretos, números não finitos ou velocidade fora do limite
+faz a chamada retornar `false`, sem desenhar. Os campos conhecidos são lidos
+diretamente da tabela; campos desconhecidos são ignorados.
+
+O [exemplo de rotação de itens](../Tutorials/ItemRotation/README.md) permite comparar
+as quatro funções, ângulo fixo e giros em sentidos opostos.
+
 ### Client.RenderCharacter
 
 ```lua
 Client.RenderCharacter(id, x, y, width, height, angle, zoom, animation)
 ```
 
-Desenha preview do personagem local.
+Desenha preview do personagem local e acompanha as trocas de equipamento.
+Quando o Inventario Visual esta habilitado, usa a aparencia visual equipada
+compativel, sem alterar o equipamento real ou seus atributos.
 
 ### Client.RenderCharacterPacket
 
@@ -644,7 +757,9 @@ Desenha preview do personagem local.
 Client.RenderCharacterPacket(id, x, y, width, height, classType, change, equipment, angle, zoom, animation)
 ```
 
-Desenha personagem a partir de dados informados pelo script.
+Desenha personagem a partir de dados informados pelo script. O array
+`equipment` define a aparencia; esta chamada nao herda os visuais do
+personagem local automaticamente.
 
 ### Client.RenderStoredCharacter
 
@@ -656,6 +771,12 @@ Client.ClearStoredCharacter(renderId)
 
 Desenha personagem cujos dados foram empacotados pelo servidor com
 `User.SendCharacterRender(playerIndex, renderId, name)`.
+
+O servidor inclui os visuais equipados compativeis quando o Inventario
+Visual esta habilitado. Os dados ficam guardados ate uma nova resposta ou
+`ClearStoredCharacter`; para atualizar a aparencia, envie novamente com
+`User.SendCharacterRender`. Calcas com tecido nativo e calcas customizadas
+usam a mesma camera da previa, sem flags adicionais no script.
 
 Exemplo:
 
@@ -1010,8 +1131,14 @@ Client.ClearAllHeadImages()
 Exemplo:
 
 ```lua
-Client.LoadImage("Custom\\Interface\\dailyre.tga", 70200)
+Client.LoadImage("Custom\\Interface\\MainMenu\\daily.tga", 70200)
 Client.SetHeadImage("Admin", 70200, 32, 32, 0, -6)
 ```
 
 > Para **NPC**, o nome normalmente so aparece no hover. Ao registrar uma imagem, o NPC passa a ser desenhado todo frame, entao a **imagem e o nome do NPC ficam sempre visiveis** (so para NPCs com imagem registrada). `ClearHeadImage` reverte ao normal. Para player/monstro o nome ja e sempre visivel; nada muda alem da imagem.
+
+## Nomes multilíngues (4.0.0)
+
+Os nomes retornados ao Lua do Main são UTF-8, independentemente do idioma selecionado.
+Não reconverta esses valores pela página de código do Windows. Os nomes ASCII
+permanecem iguais. O servidor precisa da migração opcional para criar nomes chineses.

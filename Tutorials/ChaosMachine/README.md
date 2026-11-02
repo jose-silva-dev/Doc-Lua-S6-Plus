@@ -70,7 +70,26 @@ Em `mixes`, adicione uma entrada:
 }
 ```
 
-Mixes de teste vem na configuracao padrao para validar perda, custo e rate por VIP.
+A configuracao padrao inclui dez modelos neutros, de `Combinacao 1` ate
+`Combinacao 10`, para o administrador editar sem precisar montar a estrutura
+do zero. A dificuldade cresce progressivamente:
+
+| Combinacao | Chance base | Custo em Zen |
+|---|---:|---:|
+| 1 | 100% | 0 |
+| 2 | 90% | 50.000 |
+| 3 | 80% | 100.000 |
+| 4 | 70% | 200.000 |
+| 5 | 60% | 350.000 |
+| 6 | 50% | 500.000 |
+| 7 | 40% | 750.000 |
+| 8 | 30% | 1.000.000 |
+| 9 | 20% | 2.000.000 |
+| 10 | 10% | 5.000.000 |
+
+Os ingredientes e premios incluidos sao exemplos editaveis. Antes de abrir o
+servidor ao publico, revise `name`, `rates`, `zen`, `ingredients` e `rewards`
+de cada combinacao para adequar a progressao ao seu servidor.
 
 Para desligar uma combinacao sem apagar:
 
@@ -127,18 +146,41 @@ O tamanho padrao da janela e:
 
 ```lua
 window = {
-	width = 370,
-	height = 370,
+	width = 480,
+	height = 440,
 	maxMixes = 6,
 	maxItems = 5,
 	maxIngredients = 5,
 	maxRewards = 5,
+	itemIconSize = 42,
+	itemIconScale = 0.50,
 }
 ```
 
-Se aumentar a quantidade de combinacoes ou de itens exibidos, ajuste `height`, `maxMixes`, `maxIngredients` e `maxRewards`. Quando houver mais itens do que o limite visivel, o jogador pode rolar a lista com o mouse.
+`maxMixes`, `maxIngredients` e `maxRewards` definem quantas entradas aparecem
+simultaneamente, e nao o limite total cadastrado. Quando houver mais entradas
+que o limite visivel, a coluna recebe uma barra nativa. A configuracao padrao
+mantem seis das dez combinacoes visiveis e permite acessar as demais pela roda
+do mouse, clique na trilha ou arraste do marcador. Os cards mantem o contorno
+completo mesmo quando a barra esta visivel.
 
-A janela usa `RenderTop`, pode ser movida pela barra superior e fecha com `ESC` consumindo a tecla antes das janelas nativas. A interface bloqueia apenas o mouse enquanto ele esta sobre a janela.
+A janela usa o padrao nativo `GenesysUI`, com moldura, titulo, `X`, cards
+`character_ex`, botao pequeno e barras de rolagem iguais as do cliente. O
+tamanho e logico e permanece consistente entre resolucoes e modos widescreen.
+A lista de combinacoes, os ingredientes e os resultados aceitam roda do mouse,
+clique na trilha e arraste direto do marcador.
+
+Ingredientes e resultados ficam em duas colunas independentes. Cada item usa
+um card com area quadrada para o preview, nome e quantidade. Joias, armas,
+armaduras, asas e consumiveis possuem perfis de escala diferentes para manter
+os modelos centralizados e dentro do card. `itemIconScale` funciona como
+multiplicador global desses perfis. Apenas combinacoes e itens realmente
+recebidos do servidor geram cards; os limites `maxMixes`, `maxIngredients` e
+`maxRewards` controlam a quantidade maxima visivel, sem criar espacos vazios.
+
+A janela usa `RenderTop`, pode ser movida pela barra superior e fecha pelo `X`,
+com `ESC` ou ao clicar fora da moldura. O fechamento tambem encerra o inventario
+aberto em conjunto com o sistema.
 
 Ao abrir o Chaos Machine, o inventario tambem e aberto automaticamente. Se o jogador fechar o inventario, o Chaos Machine fecha junto. Se o jogador fechar o Chaos Machine, o inventario tambem e fechado.
 
